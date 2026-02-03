@@ -8,6 +8,9 @@ const corsHeaders = {
 
 interface FleetData {
   veiculo: string;
+  placa?: string;
+  veiculo_nome?: string;
+  internal_id?: string;
   data_inicial: string;
   horario_inicial: string;
   data_final: string;
@@ -31,8 +34,21 @@ function parseWhatsAppMessage(message: string): FleetData | null {
   try {
     const normalizedMessage = message.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
 
-    const veiculoMatch = normalizedMessage.match(/\*([^*]+)\*/);
-    const veiculo = veiculoMatch ? veiculoMatch[1].trim() : '';
+    // Specific Multi-Extraction logic
+    const idMatch = normalizedMessage.match(/ID:\s*([^\n]+)/i);
+    const internal_id = idMatch ? idMatch[1].trim() : undefined;
+
+    const placaMatch = normalizedMessage.match(/PLACA:\s*([^\n]+)/i);
+    const placa = placaMatch ? placaMatch[1].trim() : undefined;
+
+    const nameMatch = normalizedMessage.match(/VE[IÍ]CULO:\s*([^\n]+)/i);
+    const veiculo_nome = nameMatch ? nameMatch[1].trim() : undefined;
+
+    const asteriksMatch = normalizedMessage.match(/\*([^*]+)\*/);
+    const fallback_veiculo = asteriksMatch ? asteriksMatch[1].trim() : '';
+
+    // Primary vehicle identifier for display
+    const veiculo = veiculo_nome || fallback_veiculo || placa || internal_id || '';
 
     // Extract Status
     const statusMatch = normalizedMessage.match(/Status:\s*([^\n]+)/i);
@@ -62,22 +78,29 @@ function parseWhatsAppMessage(message: string): FleetData | null {
     const atividadeMatch = normalizedMessage.match(/Atividade:\s*([^\n]+)/i);
     const atividade = atividadeMatch ? atividadeMatch[1].trim() : '';
 
-    const lavagemMatch = normalizedMessage.match(/Lavagem:\s*([^\n]+)/i);
+    // Washing Logic
+    const lavagemMatch = normalizedMessage.match(/(?:Lavagem|Lavagem realizada|Necessário lavagem):\s*([^\n]+)/i);
     let lavagem: 'realizada' | 'pendente' = 'pendente';
     if (lavagemMatch) {
       const lt = lavagemMatch[1].toLowerCase();
-      if (lt.includes('realizada') || lt.includes('✅') || lt.includes('ok')) lavagem = 'realizada';
+      if (lt.includes('realizada') || lt.includes('✅') || lt.includes('ok') || (lt.includes('sim') && !normalizedMessage.includes('Necessário lavagem'))) {
+        lavagem = 'realizada';
+      }
     }
 
-    const tanqueMatch = normalizedMessage.match(/Tanque:\s*([^\n]+)/i);
+    // Tank Logic
+    const tanqueMatch = normalizedMessage.match(/(?:Tanque|Tanque na devolução|Necessário abastecer):\s*([^\n]+)/i);
     let tanque: 'cheio' | 'necessario_abastecer' | 'meio_tanque' = 'cheio';
     if (tanqueMatch) {
       const tt = tanqueMatch[1].toLowerCase();
-      if (tt.includes('abastecer') || tt.includes('necessário') || tt.includes('vazio')) tanque = 'necessario_abastecer';
-      else if (tt.includes('meio') || tt.includes('metade')) tanque = 'meio_tanque';
+      if (tt.includes('abastecer') || tt.includes('necessário') || tt.includes('vazio') || (tt.includes('sim') && normalizedMessage.includes('Necessário abastecer'))) {
+        tanque = 'necessario_abastecer';
+      } else if (tt.includes('meio') || tt.includes('metade')) {
+        tanque = 'meio_tanque';
+      }
     }
 
-    const andarMatch = normalizedMessage.match(/Andar estacionado:\s*([^\n]+)/i);
+    const andarMatch = normalizedMessage.match(/(?:Andar estacionado|Estacionado):\s*([^\n]+)/i);
     const andar_estacionado = andarMatch ? andarMatch[1].trim() : '';
 
     const parseDate = (d: string) => d.split('/').reverse().join('-');
@@ -89,7 +112,10 @@ function parseWhatsAppMessage(message: string): FleetData | null {
       }
       return `${ct.padStart(2, '0')}:00`;
     };
-    const parseKm = (k: string) => parseFloat(k.replace(/\./g, '').replace(',', '.'));
+    const parseKm = (k: string) => {
+      if (!k) return 0;
+      return parseFloat(k.replace(/\./g, '').replace(',', '.'));
+    };
 
     if (!veiculo) return null;
 
@@ -97,6 +123,9 @@ function parseWhatsAppMessage(message: string): FleetData | null {
 
     return {
       veiculo,
+      placa,
+      veiculo_nome,
+      internal_id,
       data_inicial: di,
       horario_inicial: horarioInicialMatch ? parseTime(horarioInicialMatch[1]) : '00:00',
       data_final: dataFinalMatch ? parseDate(dataFinalMatch[1]) : di,
@@ -132,12 +161,35 @@ serve(async (req) => {
     let message = body.message || body.text?.message || body.text || body.body || "";
     if (!message) return new Response('No message', { status: 400 });
 
-    if (body.isGroup && body.chatName !== 'LS - Controle de Frota') {
+    if (body.isGroup && !body.chatName?.toLowerCase().includes('frota')) {
       return new Response('Unauthorized group', { status: 200 });
     }
 
     const fleetData = parseWhatsAppMessage(message);
-    if (!fleetData) return new Response('Parse error', { status: 400 });
+    if (!fleetData) return new Response('Parse error (No vehicle identification found)', { status: 400 });
+
+    // --- ENHANCED: Find Vehicle for metadata (Model Name and correct Plate) ---
+    // Extract pieces for more robust search
+    const cleanPlate = fleetData.placa?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || '';
+    const cleanVehicleText = fleetData.veiculo.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const cleanId = fleetData.internal_id?.trim() || '';
+
+    // Search by Internal ID OR Plate OR Model
+    const orQuery = [
+      ...(cleanId ? [`internal_id.ilike.%${cleanId}%`] : []),
+      ...(cleanPlate ? [`plate.ilike.%${cleanPlate}%`] : []),
+      ...(cleanVehicleText ? [`plate.ilike.%${cleanVehicleText}%`, `model.ilike.%${fleetData.veiculo}%`] : [])
+    ].join(',');
+
+    const { data: foundVehicle } = await supabase
+      .from('vehicles')
+      .select('*')
+      .or(orQuery)
+      .maybeSingle();
+
+    // Use found vehicle's official names for consistency
+    const displayVeiculo = foundVehicle ? `${foundVehicle.brand} ${foundVehicle.model}` : fleetData.veiculo;
+    const officialPlate = foundVehicle ? foundVehicle.plate : (fleetData.placa || fleetData.veiculo);
 
     // --- LOGIC: FINISH TRIP ---
     const isFinishing = fleetData.status === 'finalizado' || (fleetData.km_final > 0 && fleetData.km_final > fleetData.km_inicial);
@@ -146,8 +198,8 @@ serve(async (req) => {
       const { data: activeTrip } = await supabase
         .from('fleet_records')
         .select('id, km_inicial')
-        .eq('veiculo', fleetData.veiculo)
-        .in('status', ['em_andamento', 'agendado']) // Allow finishing even if it was just scheduled
+        .eq('veiculo', displayVeiculo)
+        .in('status', ['em_andamento', 'agendado'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -165,7 +217,7 @@ serve(async (req) => {
           tanque: fleetData.tanque
         }).eq('id', activeTrip.id);
 
-        await supabase.from('vehicles').update({ status: 'disponivel' }).eq('plate', fleetData.veiculo);
+        await supabase.from('vehicles').update({ status: 'disponivel' }).eq('plate', officialPlate);
         return new Response(JSON.stringify({ success: true, message: 'Finalizado' }), { headers: corsHeaders });
       }
     }
@@ -175,7 +227,7 @@ serve(async (req) => {
       const { data: recentTrip } = await supabase
         .from('fleet_records')
         .select('id')
-        .eq('veiculo', fleetData.veiculo)
+        .eq('veiculo', displayVeiculo)
         .in('status', ['em_andamento', 'agendado'])
         .order('created_at', { ascending: false })
         .limit(1)
@@ -183,7 +235,7 @@ serve(async (req) => {
 
       if (recentTrip) {
         await supabase.from('fleet_records').update({ status: 'cancelado' }).eq('id', recentTrip.id);
-        await supabase.from('vehicles').update({ status: 'disponivel' }).eq('plate', fleetData.veiculo);
+        await supabase.from('vehicles').update({ status: 'disponivel' }).eq('plate', officialPlate);
         return new Response(JSON.stringify({ success: true, message: 'Cancelado' }), { headers: corsHeaders });
       }
     }
@@ -196,14 +248,13 @@ serve(async (req) => {
       const { data: scheduledTrip } = await supabase
         .from('fleet_records')
         .select('id')
-        .eq('veiculo', fleetData.veiculo)
+        .eq('veiculo', displayVeiculo)
         .eq('status', 'agendado')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (scheduledTrip) {
-        // Promote scheduled to active
         const { data, error } = await supabase.from('fleet_records').update({
           status: 'em_andamento',
           data_inicial: fleetData.data_inicial,
@@ -214,19 +265,19 @@ serve(async (req) => {
           atividade: fleetData.atividade
         }).eq('id', scheduledTrip.id).select().single();
 
-        await supabase.from('vehicles').update({ status: 'em_uso' }).eq('plate', fleetData.veiculo);
-        return new Response(JSON.stringify({ success: true, message: 'Promovido para Em Uso', data }), { headers: corsHeaders });
+        await supabase.from('vehicles').update({ status: 'em_uso' }).eq('plate', officialPlate);
+        return new Response(JSON.stringify({ success: true, message: 'Promovido', data }), { headers: corsHeaders });
       }
     }
 
     // Default: Check availability and insert
-    const { data: vehicle } = await supabase.from('vehicles').select('status').eq('plate', fleetData.veiculo).maybeSingle();
-    if (vehicle && (vehicle.status === 'em_uso' || vehicle.status === 'bloqueado')) {
+    if (foundVehicle && (foundVehicle.status === 'em_uso' || foundVehicle.status === 'bloqueado')) {
       if (targetStatus !== 'agendado') return new Response('Vehicle not available', { status: 400 });
     }
 
     const { data, error } = await supabase.from('fleet_records').insert([{
       ...fleetData,
+      veiculo: displayVeiculo, // Use official model name for consistent UI
       status: targetStatus,
       km_final: 0
     }]).select().single();
@@ -234,7 +285,7 @@ serve(async (req) => {
     if (error) throw error;
 
     const vStatus = targetStatus === 'agendado' ? 'agendado' : 'em_uso';
-    await supabase.from('vehicles').update({ status: vStatus }).eq('plate', fleetData.veiculo);
+    await supabase.from('vehicles').update({ status: vStatus }).eq('plate', officialPlate);
 
     return new Response(JSON.stringify({ success: true, data }), { status: 200, headers: corsHeaders });
 

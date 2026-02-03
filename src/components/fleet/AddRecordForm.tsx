@@ -29,7 +29,7 @@ export function AddRecordForm() {
   const { addRecord } = useFleetRecords();
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     veiculo: '',
     dataInicial: new Date().toISOString().split('T')[0],
     horarioInicial: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
@@ -40,7 +40,10 @@ export function AddRecordForm() {
     lavagem: 'pendente' as FleetRecord['lavagem'],
     tanque: 'cheio' as FleetRecord['tanque'],
     andarEstacionado: '',
-  });
+    status: 'em_andamento' as FleetRecord['status'],
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
 
   const availableVehicles = vehicles.filter(v => v.status === 'disponivel');
 
@@ -62,25 +65,15 @@ export function AddRecordForm() {
         lavagem: formData.lavagem,
         tanque: formData.tanque,
         andarEstacionado: formData.andarEstacionado,
+        status: formData.status,
       });
 
       toast({
-        title: 'Registro iniciado!',
-        description: `O uso do veículo ${formData.veiculo} foi registrado.`,
+        title: formData.status === 'agendado' ? 'Viagem agendada!' : 'Registro iniciado!',
+        description: `O veículo ${formData.veiculo} foi ${formData.status === 'agendado' ? 'reservado' : 'registrado'} com sucesso.`,
       });
 
-      setFormData({
-        veiculo: '',
-        dataInicial: new Date().toISOString().split('T')[0],
-        horarioInicial: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        destino: '',
-        kmInicial: '',
-        responsavel: '',
-        atividade: '',
-        lavagem: 'pendente',
-        tanque: 'cheio',
-        andarEstacionado: '',
-      });
+      setFormData(initialFormData);
       setOpen(false);
     } catch (err) {
       toast({
@@ -222,6 +215,21 @@ export function AddRecordForm() {
                 className="h-11 border-border/50"
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status" className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Tipo de Registro</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value: FleetRecord['status']) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger className="h-11 border-border/50 font-bold bg-primary/5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="em_andamento" className="font-bold text-primary">▶️ Iniciar Agora (Em Uso)</SelectItem>
+                  <SelectItem value="agendado" className="font-bold text-amber-600">📅 Agendar para Depois</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

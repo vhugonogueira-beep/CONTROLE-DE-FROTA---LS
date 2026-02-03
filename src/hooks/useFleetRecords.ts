@@ -45,10 +45,10 @@ export function useFleetRecords() {
     }
   };
 
-  const addRecord = async (newRecord: Omit<FleetRecord, 'id' | 'createdAt' | 'status'>) => {
+  const addRecord = async (newRecord: Omit<FleetRecord, 'id' | 'createdAt'>) => {
     try {
       // 1. Validation: KM Final cannot be less than KM Inicial
-      if (newRecord.kmFinal < newRecord.kmInicial) {
+      if (newRecord.kmFinal < newRecord.kmInicial && newRecord.kmFinal !== 0) {
         throw new Error('O KM final não pode ser menor que o KM inicial.');
       }
 
@@ -63,7 +63,7 @@ export function useFleetRecords() {
         throw new Error('Veículo não encontrado ou erro ao verificar status.');
       }
 
-      if (vehicle.status === 'em_uso') {
+      if (vehicle.status === 'em_uso' && newRecord.status !== 'agendado') {
         throw new Error('Este veículo já está em uso.');
       }
 
@@ -89,7 +89,7 @@ export function useFleetRecords() {
           lavagem: newRecord.lavagem,
           tanque: newRecord.tanque,
           andar_estacionado: newRecord.andarEstacionado,
-          status: 'em_andamento',
+          status: newRecord.status,
           source: 'manual',
         }])
         .select()
@@ -97,10 +97,11 @@ export function useFleetRecords() {
 
       if (tripError) throw tripError;
 
-      // B. Set Vehicle to 'em_uso'
+      // B. Update Vehicle Status
+      const nextVehicleStatus = newRecord.status === 'agendado' ? 'agendado' : 'em_uso';
       const { error: updateError } = await supabase
         .from('vehicles')
-        .update({ status: 'em_uso' })
+        .update({ status: nextVehicleStatus })
         .eq('plate', newRecord.veiculo);
 
       if (updateError) throw updateError;

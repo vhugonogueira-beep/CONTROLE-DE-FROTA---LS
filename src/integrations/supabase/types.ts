@@ -147,8 +147,8 @@ export type Database = {
     Enums: {
       lavagem_status: "realizada" | "pendente"
       tanque_status: "cheio" | "necessario_abastecer" | "meio_tanque"
-      trip_status: "em_andamento" | "finalizado" | "cancelado"
-      vehicle_state: "disponivel" | "em_uso" | "bloqueado"
+      trip_status: "em_andamento" | "finalizado" | "cancelado" | "agendado"
+      vehicle_state: "disponivel" | "em_uso" | "bloqueado" | "agendado"
     }
     CompositeTypes: {
       [_ in never]: never

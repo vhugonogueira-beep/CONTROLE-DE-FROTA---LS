@@ -188,6 +188,7 @@ const Index = () => {
                     </p>
                     <pre className="rounded bg-muted px-3 py-2 text-[10px] font-mono whitespace-pre-wrap leading-tight text-foreground/80">
                       {`*Saveiro Robust*
+Status: agendamento (ou em uso)
 Data inicial: 27/01/2026
 Horario inicial: 16h
 Destino: Baião 

@@ -12,7 +12,7 @@ export interface Vehicle {
     vehicleType: string;
     color: string | null;
     category: string;
-    status: 'disponivel' | 'em_uso' | 'bloqueado';
+    status: 'disponivel' | 'em_uso' | 'bloqueado' | 'agendado';
     createdAt: string;
     updatedAt: string;
 }

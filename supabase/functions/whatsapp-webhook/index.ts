@@ -20,6 +20,7 @@ interface FleetData {
   lavagem: 'realizada' | 'pendente';
   tanque: 'cheio' | 'necessario_abastecer' | 'meio_tanque';
   andar_estacionado: string;
+  status?: 'agendado' | 'em_andamento' | 'finalizado' | 'cancelado';
   raw_message: string;
   source: string;
 }
@@ -28,116 +29,77 @@ function parseWhatsAppMessage(message: string): FleetData | null {
   console.log("Parsing message:", message);
 
   try {
-    // Normalize the message
-    const normalizedMessage = message
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .trim();
+    const normalizedMessage = message.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
 
-    // Extract vehicle name (first line with asterisks)
     const veiculoMatch = normalizedMessage.match(/\*([^*]+)\*/);
     const veiculo = veiculoMatch ? veiculoMatch[1].trim() : '';
 
-    // Extract dates and times
-    // Supports: "Data:", "Data inicial:", "Data inicio:"
-    const dataInicialMatch = normalizedMessage.match(/(?:Data|Data inicial|Data in[ií]cio):\s*(\d{2}\/\d{2}\/\d{4})/i);
-    // Supports: "Horario:", "Horario inicial:", "Hora inicial:"
-    const horarioInicialMatch = normalizedMessage.match(/(?:Hor[aá]rio|Hor[aá]rio inicial|Hora inicial):\s*(\d{1,2}[:hH]?\d{0,2})/i);
+    // Extract Status
+    const statusMatch = normalizedMessage.match(/Status:\s*([^\n]+)/i);
+    let status: FleetData['status'] | undefined = undefined;
+    if (statusMatch) {
+      const stText = statusMatch[1].toLowerCase();
+      if (stText.includes('agendamento') || stText.includes('agendado')) status = 'agendado';
+      else if (stText.includes('em uso') || stText.includes('inicio') || stText.includes('início')) status = 'em_andamento';
+      else if (stText.includes('cancelado')) status = 'cancelado';
+      else if (stText.includes('finalizado')) status = 'finalizado';
+    }
 
-    // Supports: "Data final:", "Data fim:"
+    const dataInicialMatch = normalizedMessage.match(/(?:Data|Data inicial|Data in[ií]cio):\s*(\d{2}\/\d{2}\/\d{4})/i);
+    const horarioInicialMatch = normalizedMessage.match(/(?:Hor[aá]rio|Hor[aá]rio inicial|Hora inicial):\s*(\d{1,2}[:hH]?\d{0,2})/i);
     const dataFinalMatch = normalizedMessage.match(/(?:Data final|Data fim):\s*(\d{2}\/\d{2}\/\d{4})/i);
-    // Supports: "Horario final:", "Hora final:"
     const horarioFinalMatch = normalizedMessage.match(/(?:Hor[aá]rio final|Hora final):\s*(\d{1,2}[:hH]?\d{0,2})/i);
 
-    // Extract destination
     const destinoMatch = normalizedMessage.match(/Destino:\s*([^\n]+)/i);
     const destino = destinoMatch ? destinoMatch[1].trim() : '';
 
-    // Extract KM values
     const kmInicialMatch = normalizedMessage.match(/Km inicial[:\s]*([0-9.,]+)/i);
     const kmFinalMatch = normalizedMessage.match(/Km final[:\s]*([0-9.,]+)/i);
 
-    // Extract responsible person
     const responsavelMatch = normalizedMessage.match(/Respons[aá]vel:\s*([^\n]+)/i);
     const responsavel = responsavelMatch ? responsavelMatch[1].trim() : '';
 
-    // Extract activity
     const atividadeMatch = normalizedMessage.match(/Atividade:\s*([^\n]+)/i);
     const atividade = atividadeMatch ? atividadeMatch[1].trim() : '';
 
-    // Extract washing status
     const lavagemMatch = normalizedMessage.match(/Lavagem:\s*([^\n]+)/i);
     let lavagem: 'realizada' | 'pendente' = 'pendente';
     if (lavagemMatch) {
-      const lavagemText = lavagemMatch[1].toLowerCase();
-      if (lavagemText.includes('realizada') || lavagemText.includes('✅') || lavagemText.includes('ok')) {
-        lavagem = 'realizada';
-      }
+      const lt = lavagemMatch[1].toLowerCase();
+      if (lt.includes('realizada') || lt.includes('✅') || lt.includes('ok')) lavagem = 'realizada';
     }
 
-    // Extract tank status
     const tanqueMatch = normalizedMessage.match(/Tanque:\s*([^\n]+)/i);
     let tanque: 'cheio' | 'necessario_abastecer' | 'meio_tanque' = 'cheio';
     if (tanqueMatch) {
-      const tanqueText = tanqueMatch[1].toLowerCase();
-      if (tanqueText.includes('abastecer') || tanqueText.includes('necessário') || tanqueText.includes('vazio')) {
-        tanque = 'necessario_abastecer';
-      } else if (tanqueText.includes('meio') || tanqueText.includes('metade')) {
-        tanque = 'meio_tanque';
-      }
+      const tt = tanqueMatch[1].toLowerCase();
+      if (tt.includes('abastecer') || tt.includes('necessário') || tt.includes('vazio')) tanque = 'necessario_abastecer';
+      else if (tt.includes('meio') || tt.includes('metade')) tanque = 'meio_tanque';
     }
 
-    // Extract parking floor
     const andarMatch = normalizedMessage.match(/Andar estacionado:\s*([^\n]+)/i);
     const andar_estacionado = andarMatch ? andarMatch[1].trim() : '';
 
-    // Parse dates from DD/MM/YYYY to YYYY-MM-DD
-    const parseDate = (dateStr: string): string => {
-      const parts = dateStr.split('/');
-      if (parts.length === 3) {
-        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    const parseDate = (d: string) => d.split('/').reverse().join('-');
+    const parseTime = (t: string) => {
+      let ct = t.toLowerCase().replace(/[hH]/g, ':').replace(/[^\d:]/g, '');
+      if (ct.includes(':')) {
+        const p = ct.split(':');
+        return `${(p[0] || '00').padStart(2, '0')}:${(p[1] || '00').padStart(2, '0')}`;
       }
-      return dateStr;
+      return `${ct.padStart(2, '0')}:00`;
     };
+    const parseKm = (k: string) => parseFloat(k.replace(/\./g, '').replace(',', '.'));
 
-    // Parse time format
-    // Handles: "10:05h", "10:05", "10h", "10h30", "10"
-    const parseTime = (timeStr: string): string => {
-      // Remove non-alphanumeric chars at the end (like 'h') if using colon
-      let cleanTime = timeStr.toLowerCase().replace(/[hH]/g, ':').replace(/[^\d:]/g, '');
+    if (!veiculo) return null;
 
-      if (cleanTime.includes(':')) {
-        const parts = cleanTime.split(':');
-        let hour = parts[0];
-        let minute = parts[1] || '00';
-        // Validate
-        if (hour.length === 0) hour = '00';
-        if (minute.length === 0) minute = '00';
-        return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
-      } else {
-        // Assume pure number is hour (e.g. "10")
-        return `${cleanTime.padStart(2, '0')}:00`;
-      }
-    };
+    const di = dataInicialMatch ? parseDate(dataInicialMatch[1]) : new Date().toISOString().split('T')[0];
 
-    // Parse KM values
-    const parseKm = (kmStr: string): number => {
-      return parseFloat(kmStr.replace(/\./g, '').replace(',', '.'));
-    };
-
-    if (!veiculo) {
-      console.log("No vehicle found in message");
-      return null;
-    }
-
-    const dataInicialStr = dataInicialMatch ? parseDate(dataInicialMatch[1]) : new Date().toISOString().split('T')[0];
-    const dataFinalStr = dataFinalMatch ? parseDate(dataFinalMatch[1]) : dataInicialStr; // Fallback to start date
-
-    const result: FleetData = {
+    return {
       veiculo,
-      data_inicial: dataInicialStr,
+      data_inicial: di,
       horario_inicial: horarioInicialMatch ? parseTime(horarioInicialMatch[1]) : '00:00',
-      data_final: dataFinalStr,
+      data_final: dataFinalMatch ? parseDate(dataFinalMatch[1]) : di,
       horario_final: horarioFinalMatch ? parseTime(horarioFinalMatch[1]) : '00:00',
       destino,
       km_inicial: kmInicialMatch ? parseKm(kmInicialMatch[1]) : 0,
@@ -147,205 +109,136 @@ function parseWhatsAppMessage(message: string): FleetData | null {
       lavagem,
       tanque,
       andar_estacionado,
+      status,
       raw_message: message,
       source: 'whatsapp',
     };
-
-    console.log("Parsed result:", result);
-    return result;
-  } catch (error) {
-    console.error("Error parsing message:", error);
+  } catch (err) {
+    console.error("Error parsing:", err);
     return null;
   }
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error('Missing Supabase environment variables');
-    }
-
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error('Missing Env');
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const body = await req.json();
-    console.log("Received webhook body:", JSON.stringify(body));
+    let message = body.message || body.text?.message || body.text || body.body || "";
+    if (!message) return new Response('No message', { status: 400 });
 
-    // Handle different webhook formats
-    let message = '';
-
-    // Format 1: Direct message field
-    if (body.message) {
-      message = body.message;
-    }
-    // Format 2: Z-API / Baileys (often nested in text.message)
-    else if (body.text && typeof body.text === 'object' && body.text.message) {
-      message = body.text.message;
-    }
-    // Format 3: WhatsApp Business API format
-    else if (body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.text?.body) {
-      message = body.entry[0].changes[0].value.messages[0].text.body;
-    }
-    // Format 4: Simple text field (if string)
-    else if (typeof body.text === 'string') {
-      message = body.text;
-    }
-    // Format 5: Body field
-    else if (body.body) {
-      message = body.body;
-    }
-
-    if (!message) {
-      console.log("No message found in webhook body");
-      return new Response(
-        JSON.stringify({ success: false, error: 'No message found in request body' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // --- Z-API SPECIFIC CHECKS ---
-    // Check if it is a group message
-    if (body.isGroup) {
-      console.log(`Processing group message from group: ${body.chatName} (ID: ${body.phone})`);
-
-      // Filter by Group Name
-      if (body.chatName !== 'LS - Controle de Frota') {
-        console.log(`Ignoring message from group "${body.chatName}". Expected "LS - Controle de Frota".`);
-        return new Response(
-          JSON.stringify({ success: false, error: 'Message from unauthorized group' }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } } // Return 200 to avoid Z-API retries
-        );
-      }
-
-      // Sender filtering removed - allowing any participant in the group.
-    } else {
-      // Optional: Reject direct messages if strict mode is desired? 
-      // For now, let's allow testing via direct message or existing logic, 
-      // but since user asked for SPECIFIC filtering, maybe we should warn?
-      console.log("Received a non-group message or generic webhook.");
+    if (body.isGroup && body.chatName !== 'LS - Controle de Frota') {
+      return new Response('Unauthorized group', { status: 200 });
     }
 
     const fleetData = parseWhatsAppMessage(message);
+    if (!fleetData) return new Response('Parse error', { status: 400 });
 
-    if (!fleetData) {
-      console.log("Could not parse fleet data from message");
-      return new Response(
-        JSON.stringify({ success: false, error: 'Could not parse fleet data from message' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Professional Logic: Check if it's a "Start" or "Finish" operation
-    const isFinishing = fleetData.km_final > 0 && fleetData.km_final > fleetData.km_inicial;
+    // --- LOGIC: FINISH TRIP ---
+    const isFinishing = fleetData.status === 'finalizado' || (fleetData.km_final > 0 && fleetData.km_final > fleetData.km_inicial);
 
     if (isFinishing) {
-      // 1. Find the active trip for this vehicle
-      const { data: activeTrip, error: findError } = await supabase
+      const { data: activeTrip } = await supabase
         .from('fleet_records')
         .select('id, km_inicial')
         .eq('veiculo', fleetData.veiculo)
-        .eq('status', 'em_andamento')
+        .in('status', ['em_andamento', 'agendado']) // Allow finishing even if it was just scheduled
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (findError) throw findError;
-
       if (activeTrip) {
-        // Validation: KM Final cannot be less than initial
-        if (fleetData.km_final < activeTrip.km_inicial) {
-          return new Response(
-            JSON.stringify({ success: false, error: `KM Final (${fleetData.km_final}) não pode ser menor que o inicial (${activeTrip.km_inicial})` }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+        if (fleetData.km_final < activeTrip.km_inicial && fleetData.km_final !== 0) {
+          return new Response('Invalid KM', { status: 400 });
         }
+        await supabase.from('fleet_records').update({
+          km_final: fleetData.km_final,
+          data_final: fleetData.data_final,
+          horario_final: fleetData.horario_final,
+          status: 'finalizado',
+          lavagem: fleetData.lavagem,
+          tanque: fleetData.tanque
+        }).eq('id', activeTrip.id);
 
-        // 2. Update the trip
-        const { error: updateTripError } = await supabase
-          .from('fleet_records')
-          .update({
-            km_final: fleetData.km_final,
-            data_final: fleetData.data_final,
-            horario_final: fleetData.horario_final,
-            status: 'finalizado',
-            lavagem: fleetData.lavagem,
-            tanque: fleetData.tanque
-          })
-          .eq('id', activeTrip.id);
-
-        if (updateTripError) throw updateTripError;
-
-        // 3. Free the vehicle
-        const { error: updateVehError } = await supabase
-          .from('vehicles')
-          .update({ status: 'disponivel' })
-          .eq('plate', fleetData.veiculo);
-
-        if (updateVehError) throw updateVehError;
-
-        return new Response(
-          JSON.stringify({ success: true, message: 'Viagem finalizada com sucesso via WhatsApp' }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        await supabase.from('vehicles').update({ status: 'disponivel' }).eq('plate', fleetData.veiculo);
+        return new Response(JSON.stringify({ success: true, message: 'Finalizado' }), { headers: corsHeaders });
       }
     }
 
-    // Default: Start a new trip
-    // 1. Verify vehicle availability
-    const { data: vehicle, error: vehError } = await supabase
-      .from('vehicles')
-      .select('status')
-      .eq('plate', fleetData.veiculo)
-      .maybeSingle();
+    // --- LOGIC: CANCEL TRIP ---
+    if (fleetData.status === 'cancelado') {
+      const { data: recentTrip } = await supabase
+        .from('fleet_records')
+        .select('id')
+        .eq('veiculo', fleetData.veiculo)
+        .in('status', ['em_andamento', 'agendado'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (vehError) throw vehError;
-    if (vehicle && vehicle.status === 'em_uso') {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Este veículo já está em uso.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (recentTrip) {
+        await supabase.from('fleet_records').update({ status: 'cancelado' }).eq('id', recentTrip.id);
+        await supabase.from('vehicles').update({ status: 'disponivel' }).eq('plate', fleetData.veiculo);
+        return new Response(JSON.stringify({ success: true, message: 'Cancelado' }), { headers: corsHeaders });
+      }
     }
 
-    // 2. Insert into database
-    const { data, error: insertError } = await supabase
-      .from('fleet_records')
-      .insert([{
-        ...fleetData,
-        status: 'em_andamento',
-        km_final: 0 // Ensure km_final is 0 on start
-      }])
-      .select()
-      .single();
+    // --- LOGIC: START OR SCHEDULE ---
+    const targetStatus = fleetData.status || 'em_andamento';
 
-    if (insertError) throw insertError;
+    // Transition Logic: Schedule -> In Use
+    if (targetStatus === 'em_andamento') {
+      const { data: scheduledTrip } = await supabase
+        .from('fleet_records')
+        .select('id')
+        .eq('veiculo', fleetData.veiculo)
+        .eq('status', 'agendado')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    // 3. Mark vehicle as in use
-    const { error: markVehError } = await supabase
-      .from('vehicles')
-      .update({ status: 'em_uso' })
-      .eq('plate', fleetData.veiculo);
+      if (scheduledTrip) {
+        // Promote scheduled to active
+        const { data, error } = await supabase.from('fleet_records').update({
+          status: 'em_andamento',
+          data_inicial: fleetData.data_inicial,
+          horario_inicial: fleetData.horario_inicial,
+          responsavel: fleetData.responsavel,
+          destino: fleetData.destino,
+          km_inicial: fleetData.km_inicial,
+          atividade: fleetData.atividade
+        }).eq('id', scheduledTrip.id).select().single();
 
-    if (markVehError) throw markVehError;
+        await supabase.from('vehicles').update({ status: 'em_uso' }).eq('plate', fleetData.veiculo);
+        return new Response(JSON.stringify({ success: true, message: 'Promovido para Em Uso', data }), { headers: corsHeaders });
+      }
+    }
 
-    console.log("Successfully started trip via WhatsApp:", data);
+    // Default: Check availability and insert
+    const { data: vehicle } = await supabase.from('vehicles').select('status').eq('plate', fleetData.veiculo).maybeSingle();
+    if (vehicle && (vehicle.status === 'em_uso' || vehicle.status === 'bloqueado')) {
+      if (targetStatus !== 'agendado') return new Response('Vehicle not available', { status: 400 });
+    }
 
-    return new Response(
-      JSON.stringify({ success: true, data }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const { data, error } = await supabase.from('fleet_records').insert([{
+      ...fleetData,
+      status: targetStatus,
+      km_final: 0
+    }]).select().single();
+
+    if (error) throw error;
+
+    const vStatus = targetStatus === 'agendado' ? 'agendado' : 'em_uso';
+    await supabase.from('vehicles').update({ status: vStatus }).eq('plate', fleetData.veiculo);
+
+    return new Response(JSON.stringify({ success: true, data }), { status: 200, headers: corsHeaders });
 
   } catch (error) {
-    console.error("Error processing webhook:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
   }
 });

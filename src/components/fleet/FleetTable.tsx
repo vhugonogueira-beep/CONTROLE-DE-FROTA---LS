@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Fuel, ParkingCircle, Ban, PlayCircle, Info } from 'lucide-react';
+import { CheckCircle2, XCircle, Fuel, ParkingCircle, Ban, PlayCircle, Info, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -50,6 +50,13 @@ export function FleetTable({ records, onFinish, onCancel, onViewDetails }: Fleet
           <Badge className="bg-muted text-muted-foreground border-0">
             <Ban className="mr-1 h-3 w-3" />
             Cancelado
+          </Badge>
+        );
+      case 'agendado':
+        return (
+          <Badge className="bg-amber-500/20 text-amber-600 border-0">
+            <Clock className="mr-1 h-3 w-3" />
+            Agendado
           </Badge>
         );
     }

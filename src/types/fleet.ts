@@ -13,7 +13,7 @@ export interface FleetRecord {
   lavagem: 'realizada' | 'pendente';
   tanque: 'cheio' | 'necessario_abastecer' | 'meio_tanque';
   andarEstacionado: string;
-  status: 'em_andamento' | 'finalizado' | 'cancelado';
+  status: 'em_andamento' | 'finalizado' | 'cancelado' | 'agendado';
   createdAt: string;
 }
 

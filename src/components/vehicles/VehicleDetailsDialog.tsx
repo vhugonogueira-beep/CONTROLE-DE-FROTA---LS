@@ -22,6 +22,11 @@ export function VehicleDetailsDialog({ vehicle, onClose }: VehicleDetailsDialogP
                     <DialogTitle>Informações do Veículo</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
+                    {vehicle.imageUrl && (
+                        <div className="w-full aspect-video rounded-xl overflow-hidden border bg-muted mb-4">
+                            <img src={vehicle.imageUrl} alt={vehicle.plate} className="w-full h-full object-cover" />
+                        </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <p className="text-xs text-muted-foreground uppercase font-semibold">Placa</p>

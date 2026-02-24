@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Camera, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import {
     Select,
     SelectContent,
@@ -38,8 +40,11 @@ export function EditVehicleForm({ vehicle, open, onOpenChange, onUpdate }: EditV
         vehicleType: '',
         color: '',
         category: '',
-        status: 'active' as 'active' | 'inactive',
+        status: 'disponivel' as Vehicle['status'],
+        imageUrl: '',
     });
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         if (vehicle) {
@@ -56,21 +61,51 @@ export function EditVehicleForm({ vehicle, open, onOpenChange, onUpdate }: EditV
                 vehicleType: vehicle.vehicleType || '',
                 color: vehicle.color || '',
                 category: vehicle.category || '',
-                status: vehicle.status || 'active',
+                status: vehicle.status || 'disponivel',
+                imageUrl: vehicle.imageUrl || '',
             });
         }
     }, [vehicle]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!vehicle) return;
 
-        onUpdate(vehicle.id, {
-            ...formData,
-            manufacturingYear: formData.manufacturingYear ? parseInt(formData.manufacturingYear) : null,
-            modelYear: formData.modelYear ? parseInt(formData.modelYear) : null,
-        });
-        onOpenChange(false);
+        try {
+            setIsUploading(true);
+            let imageUrl = formData.imageUrl;
+
+            if (imageFile) {
+                const fileExt = imageFile.name.split('.').pop();
+                const fileName = `vehicle_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const filePath = `vehicles/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('fleet_photos')
+                    .upload(filePath, imageFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage
+                    .from('fleet_photos')
+                    .getPublicUrl(filePath);
+
+                imageUrl = data.publicUrl;
+            }
+
+            onUpdate(vehicle.id, {
+                ...formData,
+                manufacturingYear: formData.manufacturingYear ? parseInt(formData.manufacturingYear) : null,
+                modelYear: formData.modelYear ? parseInt(formData.modelYear) : null,
+                imageUrl: imageUrl,
+            });
+            onOpenChange(false);
+            setImageFile(null);
+        } catch (error) {
+            console.error('Error updating vehicle:', error);
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
@@ -228,24 +263,35 @@ export function EditVehicleForm({ vehicle, open, onOpenChange, onUpdate }: EditV
                             <Label htmlFor="edit-status">Status</Label>
                             <Select
                                 value={formData.status}
-                                onValueChange={(value: 'active' | 'inactive') => setFormData({ ...formData, status: value })}
+                                onValueChange={(value: Vehicle['status']) => setFormData({ ...formData, status: value })}
                             >
                                 <SelectTrigger id="edit-status">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="active">Ativo</SelectItem>
-                                    <SelectItem value="inactive">Inativo</SelectItem>
+                                    <SelectItem value="disponivel">Disponível</SelectItem>
+                                    <SelectItem value="em_uso">Em Uso</SelectItem>
+                                    <SelectItem value="bloqueado">Bloqueado</SelectItem>
+                                    <SelectItem value="agendado">Agendado</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
                             Cancelar
                         </Button>
-                        <Button type="submit">Atualizar Veículo</Button>
+                        <Button type="submit" disabled={isUploading}>
+                            {isUploading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Salvando...
+                                </>
+                            ) : (
+                                'Atualizar Veículo'
+                            )}
+                        </Button>
                     </div>
                 </form>
             </DialogContent>

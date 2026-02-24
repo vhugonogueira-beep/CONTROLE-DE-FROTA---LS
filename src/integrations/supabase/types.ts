@@ -30,6 +30,7 @@ export type Database = {
           color: string | null
           category: string
           status: Database["public"]["Enums"]["vehicle_state"]
+          image_url: string | null
           created_at: string
           updated_at: string
         }
@@ -92,18 +93,21 @@ export type Database = {
           status: Database["public"]["Enums"]["trip_status"]
           updated_at: string
           veiculo: string
+          foto_painel_inicial_url: string | null
+          foto_painel_final_url: string | null
+          comprovante_abastecimento_url: string | null
         }
         Insert: {
-          andar_estacionado: string
+          andar_estacionado?: string | null
           atividade: string
           created_at?: string
-          data_final: string
+          data_final?: string | null
           data_inicial: string
           destino: string
-          horario_final: string
+          horario_final?: string | null
           horario_inicial: string
           id?: string
-          km_final: number
+          km_final?: number | null
           km_inicial: number
           lavagem?: Database["public"]["Enums"]["lavagem_status"]
           raw_message?: string | null
@@ -113,18 +117,21 @@ export type Database = {
           status?: Database["public"]["Enums"]["trip_status"]
           updated_at?: string
           veiculo: string
+          foto_painel_inicial_url?: string | null
+          foto_painel_final_url?: string | null
+          comprovante_abastecimento_url?: string | null
         }
         Update: {
-          andar_estacionado?: string
+          andar_estacionado?: string | null
           atividade?: string
           created_at?: string
-          data_final?: string
+          data_final?: string | null
           data_inicial?: string
           destino?: string
-          horario_final?: string
+          horario_final?: string | null
           horario_inicial?: string
           id?: string
-          km_final?: number
+          km_final?: number | null
           km_inicial?: number
           lavagem?: Database["public"]["Enums"]["lavagem_status"]
           raw_message?: string | null
@@ -134,6 +141,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["trip_status"]
           updated_at?: string
           veiculo?: string
+          foto_painel_inicial_url?: string | null
+          foto_painel_final_url?: string | null
+          comprovante_abastecimento_url?: string | null
         }
         Relationships: []
       }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -20,7 +21,7 @@ import {
 import { Vehicle } from '@/types/vehicle';
 
 interface AddVehicleFormProps {
-    onAdd: (vehicle: Omit<Vehicle, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => void;
+    onAdd: (vehicle: Omit<Vehicle, 'id' | 'createdAt' | 'updatedAt' | 'status'> & { imageUrl?: string }) => void;
 }
 
 export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
@@ -39,29 +40,63 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
         color: '',
         category: 'Operacional',
     });
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onAdd({
-            ...formData,
-            manufacturingYear: formData.manufacturingYear ? parseInt(formData.manufacturingYear) : null,
-            modelYear: formData.modelYear ? parseInt(formData.modelYear) : null,
-        });
-        setFormData({
-            internalId: '',
-            plate: '',
-            renavam: '',
-            chassis: '',
-            brand: '',
-            model: '',
-            version: '',
-            manufacturingYear: '',
-            modelYear: '',
-            vehicleType: '',
-            color: '',
-            category: 'Operacional',
-        });
-        setOpen(false);
+
+        try {
+            setIsUploading(true);
+            let imageUrl = '';
+
+            if (imageFile) {
+                const fileExt = imageFile.name.split('.').pop();
+                const fileName = `vehicle_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const filePath = `vehicles/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('fleet_photos')
+                    .upload(filePath, imageFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage
+                    .from('fleet_photos')
+                    .getPublicUrl(filePath);
+
+                imageUrl = data.publicUrl;
+            }
+
+            onAdd({
+                ...formData,
+                manufacturingYear: formData.manufacturingYear ? parseInt(formData.manufacturingYear) : null,
+                modelYear: formData.modelYear ? parseInt(formData.modelYear) : null,
+                imageUrl: imageUrl || undefined,
+            });
+
+            setFormData({
+                internalId: '',
+                plate: '',
+                renavam: '',
+                chassis: '',
+                brand: '',
+                model: '',
+                version: '',
+                manufacturingYear: '',
+                modelYear: '',
+                vehicleType: '',
+                color: '',
+                category: 'Operacional',
+            });
+            setImageFile(null);
+            setOpen(false);
+        } catch (error) {
+            console.error('Error adding vehicle:', error);
+            // We could add a toast here, but useVehicles probably handles it or we can rely on parent
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
@@ -223,11 +258,33 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
                         </div>
                     </div>
 
+                    <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest flex items-center gap-2">
+                            <Camera className="h-3 w-3" /> Foto do Veículo (Opcional)
+                        </Label>
+                        <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                            className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                        />
+                        {imageFile && <p className="text-[10px] mt-1 text-emerald-500 font-bold">Arquivo selecionado: {imageFile.name}</p>}
+                    </div>
+
                     <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                        <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isUploading}>
                             Cancelar
                         </Button>
-                        <Button type="submit">Salvar Veículo</Button>
+                        <Button type="submit" disabled={isUploading}>
+                            {isUploading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Salvando...
+                                </>
+                            ) : (
+                                'Salvar Veículo'
+                            )}
+                        </Button>
                     </div>
                 </form>
             </DialogContent>

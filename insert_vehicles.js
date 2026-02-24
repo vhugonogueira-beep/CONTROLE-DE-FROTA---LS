@@ -42,7 +42,7 @@ const vehicles = [
         vehicle_type: 'utilitário',
         color: 'BRANCA',
         category: 'Operacional',
-        status: 'active'
+        status: 'disponivel'
     },
     {
         plate: 'TVQ3F00',
@@ -57,7 +57,7 @@ const vehicles = [
         vehicle_type: 'utilitário',
         color: 'BRANCA',
         category: 'Operacional',
-        status: 'active'
+        status: 'disponivel'
     }
 ];
 

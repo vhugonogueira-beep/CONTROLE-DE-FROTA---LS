@@ -32,6 +32,7 @@ export function useVehicles() {
                 color: v.color,
                 category: v.category,
                 status: v.status as Vehicle['status'],
+                imageUrl: v.image_url,
                 createdAt: v.created_at,
                 updatedAt: v.updated_at,
             }));
@@ -45,7 +46,7 @@ export function useVehicles() {
         }
     };
 
-    const addVehicle = async (newVehicle: Omit<Vehicle, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => {
+    const addVehicle = async (newVehicle: Omit<Vehicle, 'id' | 'createdAt' | 'updatedAt' | 'status'> & { imageUrl?: string }) => {
         try {
             const { data, error } = await supabase
                 .from('vehicles')
@@ -63,6 +64,7 @@ export function useVehicles() {
                     color: newVehicle.color,
                     category: newVehicle.category,
                     status: 'disponivel',
+                    image_url: newVehicle.imageUrl,
                 }])
                 .select()
                 .single();
@@ -93,6 +95,7 @@ export function useVehicles() {
                     color: updates.color,
                     category: updates.category,
                     status: updates.status,
+                    image_url: updates.imageUrl,
                 })
                 .eq('id', id)
                 .select()

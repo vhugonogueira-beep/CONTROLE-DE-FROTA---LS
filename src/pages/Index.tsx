@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Car, Loader2, MessageSquare, Copy, CheckCheck } from 'lucide-react';
+import { Car, Loader2, MessageSquare, Copy, CheckCheck, ParkingCircle, RefreshCw } from 'lucide-react';
 import { StatsCards } from '@/components/fleet/StatsCards';
 import { FleetTable } from '@/components/fleet/FleetTable';
 import { AddRecordForm } from '@/components/fleet/AddRecordForm';
+import { EditRecordForm } from '@/components/fleet/EditRecordForm';
+import { FinishTripDialog } from '@/components/fleet/FinishTripDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useFleetRecords } from '@/hooks/useFleetRecords';
 import { useVehicles } from '@/hooks/useVehicles';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/components/auth/AuthContext';
+import { LogOut, User as UserIcon } from 'lucide-react';
 import { FleetRecord, FleetStats } from '@/types/fleet';
 import {
   Dialog,
@@ -19,13 +23,24 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Index = () => {
-  const { records, loading, error, finishRecord, cancelRecord } = useFleetRecords();
+  const { records, loading, error, refetch, addRecord, updateRecord, finishRecord, cancelRecord, startRecord, deleteRecord } = useFleetRecords();
   const { vehicles } = useVehicles();
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
   const [selectedRecord, setSelectedRecord] = useState<FleetRecord | null>(null);
   const [copied, setCopied] = useState(false);
+  const [finishDialogOpen, setFinishDialogOpen] = useState(false);
+  const [recordToFinish, setRecordToFinish] = useState<{ id: string; plate: string; kmInicial: number } | null>(null);
+  const [editingRecord, setEditingRecord] = useState<FleetRecord | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const stats: FleetStats = {
@@ -33,47 +48,54 @@ const Index = () => {
     totalKm: records
       .filter(r => r.status === 'finalizado')
       .reduce((acc, r) => acc + Math.max(0, r.kmFinal - r.kmInicial), 0),
-    veiculosAtivos: vehicles.filter(v => v.status !== 'bloqueado').length,
+    veiculosAtivos: vehicles.filter(v => v.status === 'em_uso').length,
+    garagem: vehicles.filter(v => v.status === 'disponivel').length,
     lavagensRealizadas: records.filter(r => r.lavagem === 'realizada').length,
+    utilizacaoPorArea: {
+      licenciamento: records.filter(r => r.area === 'Licenciamento' && r.status !== 'cancelado').length,
+      aquisicao: records.filter(r => r.area === 'Aquisição' && r.status !== 'cancelado').length,
+      engenharia: records.filter(r => r.area === 'Engenharia' && r.status !== 'cancelado').length,
+    }
   };
 
-  const handleFinishRecord = async (id: string, veiculo: string) => {
-    const finalKmStr = window.prompt(`Finalizar uso do veículo ${veiculo}.\nInforme o KM final:`);
-    if (finalKmStr === null) return;
-
-    const finalKm = parseFloat(finalKmStr);
-    if (isNaN(finalKm)) {
-      toast({
-        title: 'Erro de validação',
-        description: 'Por favor, informe um número válido para o KM.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const trip = records.find(r => r.id === id);
-    if (trip && finalKm < trip.kmInicial) {
-      toast({
-        title: 'Erro de validação',
-        description: `O KM final (${finalKm}) não pode ser menor que o inicial (${trip.kmInicial}).`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handleUpdateRecord = async (id: string, updates: Partial<FleetRecord>) => {
     try {
-      await finishRecord(id, veiculo, finalKm);
+      await updateRecord(id, updates);
       toast({
-        title: 'Uso finalizado!',
-        description: `O veículo ${veiculo} foi liberado com sucesso.`,
+        title: 'Registro atualizado!',
+        description: 'As informações da viagem foram salvas.',
       });
     } catch (err) {
       toast({
-        title: 'Erro ao finalizar',
-        description: err instanceof Error ? err.message : 'Não foi possível encerrar a viagem.',
+        title: 'Erro ao atualizar',
+        description: 'Não foi possível salvar as alterações.',
+        variant: 'destructive',
+      });
+      throw err;
+    }
+  };
+
+  const handleManualSync = async () => {
+    try {
+      await refetch();
+      toast({
+        title: 'Dados sincronizados!',
+        description: 'As informações da frota foram atualizadas.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao sincronizar',
+        description: 'Não foi possível atualizar os dados da frota.',
         variant: 'destructive',
       });
     }
+  };
+
+  const handleFinishRecord = async (id: string, veiculo: string) => {
+    const record = records.find(r => r.id === id);
+    if (!record) return;
+    setRecordToFinish({ id, plate: veiculo, kmInicial: record.kmInicial });
+    setFinishDialogOpen(true);
   };
 
   const handleCancelRecord = async (id: string, veiculo: string) => {
@@ -89,6 +111,40 @@ const Index = () => {
       toast({
         title: 'Erro ao cancelar',
         description: 'Não foi possível cancelar a viagem.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleStartRecord = async (id: string, veiculo: string) => {
+    try {
+      await startRecord(id, veiculo);
+      toast({
+        title: 'Viagem iniciada!',
+        description: `O veículo ${veiculo} está agora em uso.`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Erro ao iniciar',
+        description: 'Não foi possível iniciar a viagem.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteRecord = async (id: string, veiculo: string) => {
+    if (!window.confirm(`ATENÇÃO: Deseja realmente EXCLUIR o registro do veículo ${veiculo}?\nEssa ação não pode ser desfeita.`)) return;
+
+    try {
+      await deleteRecord(id, veiculo);
+      toast({
+        title: 'Registro excluído',
+        description: 'O registro foi removido do sistema.',
+      });
+    } catch (err) {
+      toast({
+        title: 'Erro ao excluir',
+        description: 'Não foi possível excluir o registro.',
         variant: 'destructive',
       });
     }
@@ -140,6 +196,45 @@ const Index = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1.5 mr-2 pr-2 border-r border-border/50">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                      <Car className="h-3.5 w-3.5" />
+                      <span className="text-xs font-black leading-none">{stats.veiculosAtivos}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Veículos em Operação</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-500/10 text-slate-500 border border-slate-500/20">
+                      <ParkingCircle className="h-3.5 w-3.5" />
+                      <span className="text-xs font-black leading-none">{stats.garagem}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Veículos na Garagem (Disponíveis)</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
+                      onClick={handleManualSync}
+                      disabled={loading}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Atualizar dados</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
             <Button variant="ghost" size="sm" onClick={() => navigate('/vehicles')} className="hidden sm:flex items-center gap-2 font-bold text-xs uppercase tracking-tighter">
               <Car className="h-4 w-4" />
               Garagem
@@ -190,14 +285,17 @@ const Index = () => {
                       {`*Saveiro Robust*
 Status: agendamento (ou em uso)
 Data inicial: 27/01/2026
-Horario inicial: 16h
+Horario inicial: 16:00
+Data final: 27/01/2026
+Horario final: 18:00
 Destino: Baião 
 Km inicial: 146.7
 Responsável: Marcio Amaral
 Atividade: Acquisition sites
+Área: Aquisição
 Lavagem: pendente⏳
 Tanque: cheio⛽
-Andar estacionado: -1`}
+Andar estacionado: P (ou -1 ou -2)`}
                     </pre>
                   </div>
                 </div>
@@ -243,9 +341,16 @@ Andar estacionado: -1`}
               ) : (
                 <FleetTable
                   records={activeRecords}
+                  vehicles={vehicles}
                   onFinish={handleFinishRecord}
                   onCancel={handleCancelRecord}
+                  onStart={handleStartRecord}
                   onViewDetails={setSelectedRecord}
+                  onDelete={handleDeleteRecord}
+                  onEdit={(record) => {
+                    setEditingRecord(record);
+                    setEditDialogOpen(true);
+                  }}
                 />
               )}
             </div>
@@ -255,19 +360,27 @@ Andar estacionado: -1`}
         {/* Panel 2: Cancelled Demands */}
         {cancelledRecords.length > 0 && (
           <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between border-b pb-4 border-destructive/20">
+            <div className="flex items-center justify-between border-b pb-4">
               <div className="space-y-1">
-                <h2 className="text-2xl font-black tracking-tight uppercase text-destructive/80">Demandas Canceladas</h2>
-                <p className="text-sm text-muted-foreground font-medium italic text-destructive/60">Registros invalidados e históricos de cancelamento.</p>
+                <h2 className="text-2xl font-black tracking-tight uppercase">Demandas Canceladas</h2>
+                <p className="text-sm text-muted-foreground font-medium italic">Registros invalidados e históricos de cancelamento.</p>
               </div>
+              <div className="h-10 w-[140px] hidden sm:block" /> {/* Placeholder to match AddRecordForm space */}
             </div>
 
-            <div className="overflow-x-auto opacity-80 grayscale-[0.5] hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+            <div className="overflow-x-auto">
               <FleetTable
                 records={cancelledRecords}
+                vehicles={vehicles}
                 onFinish={handleFinishRecord}
                 onCancel={handleCancelRecord}
+                onStart={handleStartRecord}
                 onViewDetails={setSelectedRecord}
+                onDelete={handleDeleteRecord}
+                onEdit={(record) => {
+                  setEditingRecord(record);
+                  setEditDialogOpen(true);
+                }}
               />
             </div>
           </section>
@@ -321,13 +434,85 @@ Andar estacionado: -1`}
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t flex gap-3">
-              <Button variant="outline" className="flex-1 font-bold h-11 uppercase" onClick={() => setSelectedRecord(null)}>
-                Fechar
-              </Button>
+            {(selectedRecord.fotoPainelInicialUrl || selectedRecord.fotoPainelFinalUrl || selectedRecord.comprovanteAbastecimentoUrl) && (
+              <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
+                {selectedRecord.fotoPainelInicialUrl && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Painel Inicial (Saída)</p>
+                    <a href={selectedRecord.fotoPainelInicialUrl} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border aspect-video bg-muted">
+                      <img src={selectedRecord.fotoPainelInicialUrl} alt="Painel Inicial" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold uppercase tracking-widest">Ver Zoom</span>
+                      </div>
+                    </a>
+                  </div>
+                )}
+                {selectedRecord.fotoPainelFinalUrl && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Painel Final (Retorno)</p>
+                    <a href={selectedRecord.fotoPainelFinalUrl} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border aspect-video bg-muted">
+                      <img src={selectedRecord.fotoPainelFinalUrl} alt="Painel Final" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold uppercase tracking-widest">Ver Zoom</span>
+                      </div>
+                    </a>
+                  </div>
+                )}
+                {selectedRecord.comprovanteAbastecimentoUrl && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Comprovante</p>
+                    <a href={selectedRecord.comprovanteAbastecimentoUrl} target="_blank" rel="noreferrer" className="block relative group overflow-hidden rounded-xl border aspect-video bg-muted">
+                      <img src={selectedRecord.comprovanteAbastecimentoUrl} alt="Comprovante" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold uppercase tracking-widest">Ver Zoom</span>
+                      </div>
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {selectedRecord.rawMessage && (
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-2 flex items-center gap-2">
+                <MessageSquare className="h-3 w-3" />
+                Mensagem Original (WhatsApp)
+              </p>
+              <div className="bg-muted/50 p-3 rounded-lg border border-border/50">
+                <p className="text-[10px] font-mono whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                  {selectedRecord.rawMessage}
+                </p>
+              </div>
             </div>
+          )}
+
+          <div className="mt-8 pt-6 border-t flex gap-3">
+            <Button variant="outline" className="flex-1 font-bold h-11 uppercase" onClick={() => setSelectedRecord(null)}>
+              Fechar
+            </Button>
           </div>
         </div>
+      )}
+
+      {recordToFinish && (
+        <FinishTripDialog
+          open={finishDialogOpen}
+          onOpenChange={setFinishDialogOpen}
+          recordId={recordToFinish?.id || ''}
+          veiculoPlate={recordToFinish?.plate || ''}
+          kmInicial={recordToFinish?.kmInicial || 0}
+          onConfirm={finishRecord}
+        />
+      )}
+
+      {editingRecord && (
+        <EditRecordForm
+          record={editingRecord}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onUpdate={handleUpdateRecord}
+        />
       )}
     </div>
   );

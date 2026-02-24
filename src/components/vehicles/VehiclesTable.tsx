@@ -59,6 +59,7 @@ export function VehiclesTable({ vehicles, onViewDetails, onEdit, onDelete }: Veh
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-muted/30 hover:bg-muted/30">
+                            <TableHead className="w-[80px] font-bold text-xs uppercase tracking-wider"></TableHead>
                             <TableHead className="font-bold text-xs uppercase tracking-wider">ID / Placa</TableHead>
                             <TableHead className="font-bold text-xs uppercase tracking-wider">Veículo / Modelo</TableHead>
                             <TableHead className="font-bold text-xs uppercase tracking-wider">Tipo / Categoria</TableHead>
@@ -73,6 +74,15 @@ export function VehiclesTable({ vehicles, onViewDetails, onEdit, onDelete }: Veh
                                 className="animate-fade-in group hover:bg-muted/20 border-b last:border-0"
                                 style={{ animationDelay: `${index * 50}ms` }}
                             >
+                                <TableCell>
+                                    <div className="h-10 w-16 rounded-md overflow-hidden border bg-muted flex items-center justify-center">
+                                        {vehicle.imageUrl ? (
+                                            <img src={vehicle.imageUrl} alt={vehicle.plate} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <Car className="h-5 w-5 text-muted-foreground/50" />
+                                        )}
+                                    </div>
+                                </TableCell>
                                 <TableCell>
                                     <div className="flex flex-col">
                                         <span className="font-black text-base">{vehicle.plate}</span>

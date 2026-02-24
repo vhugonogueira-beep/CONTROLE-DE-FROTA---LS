@@ -361,8 +361,10 @@ export function AddRecordForm() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="cheio">Cheio ⛽</SelectItem>
-                    <SelectItem value="meio_tanque">Meio Tanque</SelectItem>
-                    <SelectItem value="necessario_abastecer">Abastecer</SelectItem>
+                    <SelectItem value="3/4">3/4</SelectItem>
+                    <SelectItem value="meio_tanque">1/2 Tanque</SelectItem>
+                    <SelectItem value="1/4">1/4</SelectItem>
+                    <SelectItem value="reserva">Reserva ⚠</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

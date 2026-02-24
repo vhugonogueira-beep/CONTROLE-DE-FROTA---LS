@@ -11,7 +11,7 @@ export interface FleetRecord {
   responsavel: string;
   atividade: string;
   lavagem: 'realizada' | 'pendente';
-  tanque: 'cheio' | 'necessario_abastecer' | 'meio_tanque';
+  tanque: 'cheio' | '3/4' | 'meio_tanque' | '1/4' | 'reserva';
   andarEstacionado: string;
   status: 'em_andamento' | 'finalizado' | 'cancelado' | 'agendado';
   area?: string;

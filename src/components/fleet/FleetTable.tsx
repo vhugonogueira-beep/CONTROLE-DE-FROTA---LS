@@ -75,10 +75,13 @@ export function FleetTable({ records, vehicles, onFinish, onCancel, onStart, onV
   };
 
   const getTanqueBadge = (tanque: FleetRecord['tanque']) => {
-    const variants = {
+    const variants: Record<string, { className: string, label: string }> = {
       cheio: { className: 'bg-success/20 text-success', label: 'Tanque: Cheio' },
-      necessario_abastecer: { className: 'bg-destructive/20 text-destructive', label: 'Necessário Abastecer' },
+      '3/4': { className: 'bg-success/20 text-success', label: 'Tanque: 3/4' },
       meio_tanque: { className: 'bg-warning/20 text-warning', label: '1/2 Tanque' },
+      '1/4': { className: 'bg-orange-500/20 text-orange-600', label: 'Tanque: 1/4' },
+      reserva: { className: 'bg-destructive/20 text-destructive', label: 'Reserva ⚠' },
+      necessario_abastecer: { className: 'bg-destructive/20 text-destructive', label: 'Necessário Abastecer' },
     };
     const variant = variants[tanque];
     return (

@@ -60,6 +60,7 @@ const Index = () => {
         acc[r.veiculo] = (acc[r.veiculo] || 0) + km;
         return acc;
       }, {} as Record<string, number>),
+    carrosAlugados: vehicles.filter(v => v.category === 'Alugado' || v.category === 'Terceirizado').length,
     utilizacaoPorArea: {
       licenciamento: records.filter(r => r.area === 'Licenciamento' && r.status !== 'cancelado').length,
       aquisicao: records.filter(r => r.area === 'Aquisição' && r.status !== 'cancelado').length,

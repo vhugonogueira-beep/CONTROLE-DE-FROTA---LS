@@ -256,6 +256,7 @@ export function EditVehicleForm({ vehicle, open, onOpenChange, onUpdate }: EditV
                                     <SelectItem value="Operacional">Operacional</SelectItem>
                                     <SelectItem value="Administrativo">Administrativo</SelectItem>
                                     <SelectItem value="Terceirizado">Terceirizado</SelectItem>
+                                    <SelectItem value="Alugado">Alugado</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -34,10 +34,18 @@ export function StatsCards({ stats }: StatsCardsProps) {
       description: 'Distância acumulada',
       isKmCard: true,
     },
+    {
+      title: 'Carros Alugados',
+      value: stats.carrosAlugados,
+      icon: ParkingCircle,
+      gradient: 'from-purple-500/10 to-purple-500/5',
+      iconColor: 'text-purple-500',
+      description: 'Veículos locados/terceiros',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card, index) => (
         <Card
           key={card.title}

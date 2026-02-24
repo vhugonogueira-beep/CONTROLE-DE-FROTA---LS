@@ -253,6 +253,7 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
                                     <SelectItem value="Operacional">Operacional</SelectItem>
                                     <SelectItem value="Administrativo">Administrativo</SelectItem>
                                     <SelectItem value="Terceirizado">Terceirizado</SelectItem>
+                                    <SelectItem value="Alugado">Alugado</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

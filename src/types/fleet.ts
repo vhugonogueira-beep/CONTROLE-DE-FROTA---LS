@@ -28,6 +28,7 @@ export interface FleetStats {
   veiculosAtivos: number;
   garagem: number;
   kmPorVeiculo: Record<string, number>;
+  carrosAlugados: number;
   utilizacaoPorArea: {
     licenciamento: number;
     aquisicao: number;

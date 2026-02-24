@@ -100,14 +100,14 @@ export function EditRecordForm({ record, open, onOpenChange, onUpdate }: EditRec
                                 </SelectTrigger>
                                 <SelectContent>
                                     {vehicles.map(v => (
-                                        <SelectItem key={v.id} value={v.plate} disabled={v.status === 'bloqueado' && v.plate !== record.veiculo}>
+                                        <SelectItem key={v.id} value={v.plate}>
                                             <div className="flex items-center justify-between w-full gap-2">
                                                 <span className="font-bold">{v.plate}</span>
                                                 <span className="text-muted-foreground text-[10px]">- {v.brand} {v.model}</span>
                                                 {v.status !== 'disponivel' && (
                                                     <span className={`ml-auto text-[8px] uppercase font-black px-1.5 py-0.5 rounded ${v.status === 'em_uso' ? 'bg-primary/20 text-primary' :
-                                                            v.status === 'agendado' ? 'bg-amber-500/20 text-amber-600' :
-                                                                'bg-destructive/20 text-destructive'
+                                                        v.status === 'agendado' ? 'bg-amber-500/20 text-amber-600' :
+                                                            'bg-destructive/20 text-destructive'
                                                         }`}>
                                                         {v.status.replace('_', ' ')}
                                                     </span>

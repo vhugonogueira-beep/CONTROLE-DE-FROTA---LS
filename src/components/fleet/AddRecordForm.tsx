@@ -170,7 +170,7 @@ export function AddRecordForm() {
                     </div>
                   ) : (
                     vehicles.map(v => (
-                      <SelectItem key={v.id} value={v.plate} disabled={v.status === 'bloqueado'}>
+                      <SelectItem key={v.id} value={v.plate}>
                         <div className="flex items-center justify-between w-full gap-2">
                           <span className="font-bold">{v.plate}</span>
                           <span className="text-muted-foreground text-[10px]">- {v.brand} {v.model}</span>

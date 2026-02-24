@@ -7,13 +7,14 @@ import { AddRecordForm } from '@/components/fleet/AddRecordForm';
 import { EditRecordForm } from '@/components/fleet/EditRecordForm';
 import { FinishTripDialog } from '@/components/fleet/FinishTripDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ChangePasswordDialog } from '@/components/auth/ChangePasswordDialog';
 import { useFleetRecords } from '@/hooks/useFleetRecords';
 import { useVehicles } from '@/hooks/useVehicles';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth/AuthContext';
-import { LogOut, User as UserIcon, FileDown, Image as ImageIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, FileDown, Image as ImageIcon, KeyRound } from 'lucide-react';
 import { generateFleetReport } from '@/lib/ReportService';
 import { FleetRecord, FleetStats } from '@/types/fleet';
 import {
@@ -42,6 +43,7 @@ const Index = () => {
   const [recordToFinish, setRecordToFinish] = useState<{ id: string; plate: string; kmInicial: number } | null>(null);
   const [editingRecord, setEditingRecord] = useState<FleetRecord | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const stats: FleetStats = {
@@ -310,6 +312,16 @@ Andar estacionado: P (ou -1 ou -2)`}
                 <UserIcon className="h-5 w-5" />
               </div>
 
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setPasswordDialogOpen(true)}
+                className="h-10 w-10 rounded-2xl hover:bg-primary/10 hover:text-primary transition-colors group"
+                title="Alterar Senha"
+              >
+                <KeyRound className="h-5 w-5 transition-transform group-hover:rotate-12" />
+              </Button>
+
               <ThemeToggle />
 
               <Button
@@ -545,6 +557,11 @@ Andar estacionado: P (ou -1 ou -2)`}
           onUpdate={handleUpdateRecord}
         />
       )}
+
+      <ChangePasswordDialog
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
+      />
     </div>
   );
 };

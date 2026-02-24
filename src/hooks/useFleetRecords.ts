@@ -68,9 +68,6 @@ export function useFleetRecords() {
         throw new Error('Veículo não encontrado ou erro ao verificar status.');
       }
 
-      if (vehicle.status === 'bloqueado') {
-        throw new Error('Este veículo está bloqueado para manutenção.');
-      }
 
       // 3. Start Transaction-like flow
       // A. Create Trip

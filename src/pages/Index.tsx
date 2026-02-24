@@ -13,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth/AuthContext';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, FileDown, Image as ImageIcon } from 'lucide-react';
+import { generateFleetReport } from '@/lib/ReportService';
 import { FleetRecord, FleetStats } from '@/types/fleet';
 import {
   Dialog,
@@ -188,12 +189,6 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center text-center">
-            <h2 className="text-2xl font-black tracking-tighter text-primary leading-none uppercase">LS OFFICE</h2>
-            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-[0.2em] mt-1 hidden md:block">
-              Serviços de Telecom e Construções
-            </p>
-          </div>
 
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-1.5 mr-2 pr-2 border-r border-border/50">
@@ -301,7 +296,32 @@ Andar estacionado: P (ou -1 ou -2)`}
                 </div>
               </DialogContent>
             </Dialog>
-            <ThemeToggle />
+            <div className="flex items-center gap-3 pl-2 border-l border-border/50">
+              <div className="hidden md:flex flex-col items-end">
+                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none mb-1">
+                  Agente Conectado
+                </span>
+                <span className="text-[9px] font-bold text-muted-foreground/60 truncate max-w-[120px]">
+                  {user?.email}
+                </span>
+              </div>
+
+              <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+                <UserIcon className="h-5 w-5" />
+              </div>
+
+              <ThemeToggle />
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => signOut()}
+                className="h-10 w-10 rounded-2xl hover:bg-destructive/10 hover:text-destructive transition-colors group"
+                title="Sair do sistema"
+              >
+                <LogOut className="h-5 w-5 group-hover:-translate-x-0.5 transition-transform" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -322,7 +342,18 @@ Andar estacionado: P (ou -1 ou -2)`}
               <h2 className="text-2xl font-black tracking-tight uppercase">Painel Operacional</h2>
               <p className="text-sm text-muted-foreground font-medium italic">Viagens Ativas e Histórico de Sucesso.</p>
             </div>
-            <AddRecordForm />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => generateFleetReport(records)}
+                className="h-11 px-4 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 font-bold text-xs uppercase tracking-tighter rounded-xl"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Relatório PDF
+              </Button>
+              <AddRecordForm />
+            </div>
           </div>
 
           {loading ? (

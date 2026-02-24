@@ -92,7 +92,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
 
                 <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="new-password" ***REMOVED***
+                        <Label htmlFor="new-password">Nova Senha</Label>
                         <div className="relative">
                             <Input
                                 id="new-password"
@@ -114,7 +114,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="confirm-password" ***REMOVED***
+                        <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
                         <Input
                             id="confirm-password"
                             type={showPassword ? "text" : "password"}

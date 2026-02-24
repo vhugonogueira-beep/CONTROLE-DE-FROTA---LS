@@ -27,7 +27,7 @@ export interface FleetStats {
   totalKm: number;
   veiculosAtivos: number;
   garagem: number;
-  lavagensRealizadas: number;
+  kmPorVeiculo: Record<string, number>;
   utilizacaoPorArea: {
     licenciamento: number;
     aquisicao: number;

@@ -32,19 +32,12 @@ export function StatsCards({ stats }: StatsCardsProps) {
       gradient: 'from-cyan-500/10 to-cyan-500/5',
       iconColor: 'text-cyan-500',
       description: 'Distância acumulada',
-    },
-    {
-      title: 'Lavagens Realizadas',
-      value: stats.lavagensRealizadas,
-      icon: Droplets,
-      gradient: 'from-green-500/10 to-green-500/5',
-      iconColor: 'text-green-500',
-      description: 'Manutenção estética',
+      isKmCard: true,
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card, index) => (
         <Card
           key={card.title}
@@ -70,6 +63,18 @@ export function StatsCards({ stats }: StatsCardsProps) {
                     <div className="flex justify-between items-center pr-4">
                       <span className="text-[10px] uppercase font-bold text-muted-foreground/60">LICENCIAMENTO</span>
                       <span className="text-sm font-black">{stats.utilizacaoPorArea.licenciamento}</span>
+                    </div>
+                  </div>
+                ) : card.isKmCard ? (
+                  <div className="space-y-1 my-1">
+                    {Object.entries(stats.kmPorVeiculo).map(([plate, km]) => (
+                      <div key={plate} className="flex justify-between items-center pr-4 border-b border-white/5 pb-1">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground/60">{plate}</span>
+                        <span className="text-sm font-black">{km.toLocaleString()} <span className="text-[8px] font-bold">KM</span></span>
+                      </div>
+                    ))}
+                    <div className="pt-1">
+                      <span className="text-[8px] font-black text-muted-foreground/40 uppercase">Total: {card.value} KM</span>
                     </div>
                   </div>
                 ) : (

@@ -50,10 +50,16 @@ const Index = () => {
     totalViagens: records.filter(r => r.status !== 'cancelado').length,
     totalKm: records
       .filter(r => r.status === 'finalizado')
-      .reduce((acc, r) => acc + Math.max(0, r.kmFinal - r.kmInicial), 0),
+      .reduce((acc, r) => acc + Math.max(0, (r.kmFinal || 0) - r.kmInicial), 0),
     veiculosAtivos: vehicles.filter(v => v.status === 'em_uso').length,
     garagem: vehicles.filter(v => v.status === 'disponivel').length,
-    lavagensRealizadas: records.filter(r => r.lavagem === 'realizada').length,
+    kmPorVeiculo: records
+      .filter(r => r.status === 'finalizado')
+      .reduce((acc, r) => {
+        const km = Math.max(0, (r.kmFinal || 0) - r.kmInicial);
+        acc[r.veiculo] = (acc[r.veiculo] || 0) + km;
+        return acc;
+      }, {} as Record<string, number>),
     utilizacaoPorArea: {
       licenciamento: records.filter(r => r.area === 'Licenciamento' && r.status !== 'cancelado').length,
       aquisicao: records.filter(r => r.area === 'Aquisição' && r.status !== 'cancelado').length,

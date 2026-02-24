@@ -319,7 +319,7 @@ export function EditRecordForm({ record, open, onOpenChange, onUpdate }: EditRec
                                         <SelectItem value="P">P</SelectItem>
                                         <SelectItem value="-1">-1</SelectItem>
                                         <SelectItem value="-2">-2</SelectItem>
-                                        <SelectItem value="RUA 7">RUA 7</SelectItem>
+                                        <SelectItem value="EXTERNO">EXTERNO</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

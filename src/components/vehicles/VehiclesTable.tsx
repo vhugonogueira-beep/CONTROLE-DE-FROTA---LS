@@ -1,5 +1,8 @@
-import { Car, Info, Edit, Trash2, CheckCircle2, AlertCircle, PlayCircle } from 'lucide-react';
+import { Car, Info, Edit, Trash2, CheckCircle2, AlertCircle, PlayCircle, FileText, CreditCard, Receipt, Paperclip, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useRef, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
     Table,
     TableBody,
@@ -22,9 +25,50 @@ interface VehiclesTableProps {
     onViewDetails: (vehicle: Vehicle) => void;
     onEdit: (vehicle: Vehicle) => void;
     onDelete: (id: string) => void;
+    onUpdate?: (id: string, updates: Partial<Vehicle>) => void;
 }
 
-export function VehiclesTable({ vehicles, onViewDetails, onEdit, onDelete }: VehiclesTableProps) {
+export function VehiclesTable({ vehicles, onViewDetails, onEdit, onDelete, onUpdate }: VehiclesTableProps) {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingId, setUploadingId] = useState<string | null>(null);
+    const [activeVehicleId, setActiveVehicleId] = useState<string | null>(null);
+    const { toast } = useToast();
+
+    const handleQuickUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !onUpdate || !activeVehicleId) return;
+
+        try {
+            setUploadingId(activeVehicleId);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `doc_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = `vehicles/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('fleet_photos')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('fleet_photos')
+                .getPublicUrl(filePath);
+
+            await onUpdate(activeVehicleId, { documentoUrl: data.publicUrl });
+        } catch (error) {
+            console.error('Error in quick upload:', error);
+            toast({
+                title: 'Erro no upload',
+                description: 'Não foi possível salvar o documento.',
+                variant: 'destructive',
+            });
+        } finally {
+            setUploadingId(null);
+            setActiveVehicleId(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     const getStatusBadge = (status: Vehicle['status']) => {
         switch (status) {
             case 'disponivel':
@@ -98,7 +142,45 @@ export function VehiclesTable({ vehicles, onViewDetails, onEdit, onDelete }: Veh
                                 <TableCell>
                                     <div className="flex flex-col">
                                         <span className="text-sm font-semibold capitalize">{vehicle.vehicleType}</span>
-                                        <span className="text-[10px] text-muted-foreground font-bold uppercase">{vehicle.category}</span>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <span className="text-[10px] text-muted-foreground font-bold uppercase">{vehicle.category}</span>
+                                            <div className="flex items-center gap-1 ml-1">
+                                                {vehicle.documentoUrl && (
+                                                    <Tooltip>
+                                                        <TooltipTrigger>
+                                                            <div className="w-3.5 h-3.5 rounded-full bg-success/20 flex items-center justify-center">
+                                                                <FileText className="w-2 h-2 text-success" />
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="text-[10px]">Doc. Veículo Anexado</TooltipContent>
+                                                    </Tooltip>
+                                                )}
+                                                {vehicle.category === 'Alugado' && (
+                                                    <>
+                                                        {vehicle.boletoUrl && (
+                                                            <Tooltip>
+                                                                <TooltipTrigger>
+                                                                    <div className="w-3.5 h-3.5 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                                                        <CreditCard className="w-2 h-2 text-blue-500" />
+                                                                    </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent className="text-[10px]">Boleto Anexado</TooltipContent>
+                                                            </Tooltip>
+                                                        )}
+                                                        {vehicle.comprovanteUrl && (
+                                                            <Tooltip>
+                                                                <TooltipTrigger>
+                                                                    <div className="w-3.5 h-3.5 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                                                        <Receipt className="w-2 h-2 text-purple-500" />
+                                                                    </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent className="text-[10px]">Comprovante Anexado</TooltipContent>
+                                                            </Tooltip>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </TableCell>
                                 <TableCell>
@@ -106,6 +188,28 @@ export function VehiclesTable({ vehicles, onViewDetails, onEdit, onDelete }: Veh
                                 </TableCell>
                                 <TableCell className="text-right pr-4">
                                     <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-9 w-9 text-muted-foreground hover:text-success hover:bg-success/10"
+                                                    onClick={() => {
+                                                        setActiveVehicleId(vehicle.id);
+                                                        fileInputRef.current?.click();
+                                                    }}
+                                                    disabled={uploadingId === vehicle.id}
+                                                >
+                                                    {uploadingId === vehicle.id ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Paperclip className="h-4 w-4" />
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>Anexar Foto do Documento</TooltipContent>
+                                        </Tooltip>
+
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
@@ -154,6 +258,14 @@ export function VehiclesTable({ vehicles, onViewDetails, onEdit, onDelete }: Veh
                     </TableBody>
                 </Table>
             </TooltipProvider>
+
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".pdf,image/*"
+                onChange={handleQuickUpload}
+            />
         </div>
     );
 }

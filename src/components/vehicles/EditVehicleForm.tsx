@@ -39,11 +39,18 @@ export function EditVehicleForm({ vehicle, open, onOpenChange, onUpdate }: EditV
         modelYear: '',
         vehicleType: '',
         color: '',
-        category: '',
+        category: '' as Vehicle['category'],
         status: 'disponivel' as Vehicle['status'],
         imageUrl: '',
+        documentoUrl: '',
+        boletoUrl: '',
+        comprovanteUrl: '',
+        vencimentoBoleto: '',
     });
     const [imageFile, setImageFile] = useState<File | null>(null);
+    const [documentoFile, setDocumentoFile] = useState<File | null>(null);
+    const [boletoFile, setBoletoFile] = useState<File | null>(null);
+    const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
@@ -60,12 +67,34 @@ export function EditVehicleForm({ vehicle, open, onOpenChange, onUpdate }: EditV
                 modelYear: vehicle.modelYear?.toString() || '',
                 vehicleType: vehicle.vehicleType || '',
                 color: vehicle.color || '',
-                category: vehicle.category || '',
+                category: (vehicle.category || 'Operacional') as Vehicle['category'],
                 status: vehicle.status || 'disponivel',
                 imageUrl: vehicle.imageUrl || '',
+                documentoUrl: vehicle.documentoUrl || '',
+                boletoUrl: vehicle.boletoUrl || '',
+                comprovanteUrl: vehicle.comprovanteUrl || '',
+                vencimentoBoleto: vehicle.vencimentoBoleto || '',
             });
         }
     }, [vehicle]);
+
+    const uploadFile = async (file: File, prefix: string) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `vehicles/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('fleet_photos')
+            .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+            .from('fleet_photos')
+            .getPublicUrl(filePath);
+
+        return data.publicUrl;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -74,33 +103,30 @@ export function EditVehicleForm({ vehicle, open, onOpenChange, onUpdate }: EditV
         try {
             setIsUploading(true);
             let imageUrl = formData.imageUrl;
+            let documentoUrl = formData.documentoUrl;
+            let boletoUrl = formData.boletoUrl;
+            let comprovanteUrl = formData.comprovanteUrl;
 
-            if (imageFile) {
-                const fileExt = imageFile.name.split('.').pop();
-                const fileName = `vehicle_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-                const filePath = `vehicles/${fileName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('fleet_photos')
-                    .upload(filePath, imageFile);
-
-                if (uploadError) throw uploadError;
-
-                const { data } = supabase.storage
-                    .from('fleet_photos')
-                    .getPublicUrl(filePath);
-
-                imageUrl = data.publicUrl;
-            }
+            if (imageFile) imageUrl = await uploadFile(imageFile, 'vehicle');
+            if (documentoFile) documentoUrl = await uploadFile(documentoFile, 'doc');
+            if (boletoFile) boletoUrl = await uploadFile(boletoFile, 'boleto');
+            if (comprovanteFile) comprovanteUrl = await uploadFile(comprovanteFile, 'comprovante');
 
             onUpdate(vehicle.id, {
                 ...formData,
                 manufacturingYear: formData.manufacturingYear ? parseInt(formData.manufacturingYear) : null,
                 modelYear: formData.modelYear ? parseInt(formData.modelYear) : null,
-                imageUrl: imageUrl,
+                imageUrl,
+                documentoUrl,
+                boletoUrl,
+                comprovanteUrl,
+                vencimentoBoleto: formData.vencimentoBoleto || null,
             });
             onOpenChange(false);
             setImageFile(null);
+            setDocumentoFile(null);
+            setBoletoFile(null);
+            setComprovanteFile(null);
         } catch (error) {
             console.error('Error updating vehicle:', error);
         } finally {
@@ -247,7 +273,7 @@ export function EditVehicleForm({ vehicle, open, onOpenChange, onUpdate }: EditV
                             <Label htmlFor="edit-category">Categoria</Label>
                             <Select
                                 value={formData.category}
-                                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                                onValueChange={(value: any) => setFormData({ ...formData, category: value })}
                             >
                                 <SelectTrigger id="edit-category">
                                     <SelectValue placeholder="Categoria" />
@@ -257,6 +283,7 @@ export function EditVehicleForm({ vehicle, open, onOpenChange, onUpdate }: EditV
                                     <SelectItem value="Administrativo">Administrativo</SelectItem>
                                     <SelectItem value="Terceirizado">Terceirizado</SelectItem>
                                     <SelectItem value="Alugado">Alugado</SelectItem>
+                                    <SelectItem value="Frota Própria">Frota Própria</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -277,6 +304,79 @@ export function EditVehicleForm({ vehicle, open, onOpenChange, onUpdate }: EditV
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
+
+                    {formData.category === 'Alugado' && (
+                        <div className="space-y-4 pt-4 border-t border-border">
+                            <Label className="text-xs uppercase font-bold text-primary flex items-center gap-2">
+                                Anexação de Documentos (Aluguel)
+                            </Label>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground/60 flex items-center gap-2">
+                                        Boleto de Pagamento
+                                        {formData.boletoUrl && <span className="text-[8px] bg-success/20 text-success px-1 rounded">Anexado</span>}
+                                    </Label>
+                                    <Input
+                                        type="file"
+                                        accept=".pdf,image/*"
+                                        onChange={(e) => setBoletoFile(e.target.files?.[0] || null)}
+                                        className="h-10 text-[10px]"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground/60 flex items-center gap-2">
+                                        Comprovante de Pagamento
+                                        {formData.comprovanteUrl && <span className="text-[8px] bg-success/20 text-success px-1 rounded">Anexado</span>}
+                                    </Label>
+                                    <Input
+                                        type="file"
+                                        accept=".pdf,image/*"
+                                        onChange={(e) => setComprovanteFile(e.target.files?.[0] || null)}
+                                        className="h-10 text-[10px]"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground/60">Data Vencimento Boleto</Label>
+                                <Input
+                                    type="date"
+                                    value={formData.vencimentoBoleto}
+                                    onChange={(e) => setFormData({ ...formData, vencimentoBoleto: e.target.value })}
+                                    className="h-10 text-[10px]"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest flex items-center gap-2">
+                            <Camera className="h-3 w-3" /> Foto do Veículo (Opcional)
+                            {formData.imageUrl && <span className="text-[8px] bg-success/20 text-success px-1.5 rounded tracking-normal">Anexado</span>}
+                        </Label>
+                        <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                            className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                        />
+                        {imageFile && <p className="text-[10px] mt-1 text-emerald-500 font-bold">Arquivo selecionado: {imageFile.name}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest flex items-center gap-2">
+                            <Camera className="h-3 w-3" /> Foto do Documento Digital (Opcional)
+                            {formData.documentoUrl && <span className="text-[8px] bg-success/20 text-success px-1.5 rounded tracking-normal">Anexado</span>}
+                        </Label>
+                        <Input
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={(e) => setDocumentoFile(e.target.files?.[0] || null)}
+                            className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-500/10 file:text-blue-500 hover:file:bg-blue-500/20"
+                        />
+                        {documentoFile && <p className="text-[10px] mt-1 text-blue-500 font-bold">Arquivo selecionado: {documentoFile.name}</p>}
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">

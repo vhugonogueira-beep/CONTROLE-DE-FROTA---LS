@@ -38,10 +38,32 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
         modelYear: '',
         vehicleType: '',
         color: '',
-        category: 'Operacional',
+        category: 'Operacional' as Vehicle['category'],
+        vencimentoBoleto: '',
     });
     const [imageFile, setImageFile] = useState<File | null>(null);
+    const [documentoFile, setDocumentoFile] = useState<File | null>(null);
+    const [boletoFile, setBoletoFile] = useState<File | null>(null);
+    const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+
+    const uploadFile = async (file: File, prefix: string) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `vehicles/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('fleet_photos')
+            .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+            .from('fleet_photos')
+            .getPublicUrl(filePath);
+
+        return data.publicUrl;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,30 +71,24 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
         try {
             setIsUploading(true);
             let imageUrl = '';
+            let documentoUrl = '';
+            let boletoUrl = '';
+            let comprovanteUrl = '';
 
-            if (imageFile) {
-                const fileExt = imageFile.name.split('.').pop();
-                const fileName = `vehicle_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-                const filePath = `vehicles/${fileName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('fleet_photos')
-                    .upload(filePath, imageFile);
-
-                if (uploadError) throw uploadError;
-
-                const { data } = supabase.storage
-                    .from('fleet_photos')
-                    .getPublicUrl(filePath);
-
-                imageUrl = data.publicUrl;
-            }
+            if (imageFile) imageUrl = await uploadFile(imageFile, 'vehicle');
+            if (documentoFile) documentoUrl = await uploadFile(documentoFile, 'doc');
+            if (boletoFile) boletoUrl = await uploadFile(boletoFile, 'boleto');
+            if (comprovanteFile) comprovanteUrl = await uploadFile(comprovanteFile, 'comprovante');
 
             onAdd({
                 ...formData,
                 manufacturingYear: formData.manufacturingYear ? parseInt(formData.manufacturingYear) : null,
                 modelYear: formData.modelYear ? parseInt(formData.modelYear) : null,
                 imageUrl: imageUrl || undefined,
+                documentoUrl: documentoUrl || undefined,
+                boletoUrl: boletoUrl || undefined,
+                comprovanteUrl: comprovanteUrl || undefined,
+                vencimentoBoleto: formData.vencimentoBoleto || undefined,
             });
 
             setFormData({
@@ -88,12 +104,15 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
                 vehicleType: '',
                 color: '',
                 category: 'Operacional',
+                vencimentoBoleto: '',
             });
             setImageFile(null);
+            setDocumentoFile(null);
+            setBoletoFile(null);
+            setComprovanteFile(null);
             setOpen(false);
         } catch (error) {
             console.error('Error adding vehicle:', error);
-            // We could add a toast here, but useVehicles probably handles it or we can rely on parent
         } finally {
             setIsUploading(false);
         }
@@ -244,7 +263,7 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
                             <Label htmlFor="category">Categoria de Uso</Label>
                             <Select
                                 value={formData.category}
-                                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                                onValueChange={(value: any) => setFormData({ ...formData, category: value })}
                             >
                                 <SelectTrigger>
                                     <SelectValue />
@@ -254,10 +273,50 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
                                     <SelectItem value="Administrativo">Administrativo</SelectItem>
                                     <SelectItem value="Terceirizado">Terceirizado</SelectItem>
                                     <SelectItem value="Alugado">Alugado</SelectItem>
+                                    <SelectItem value="Frota Própria">Frota Própria</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
+
+                    {formData.category === 'Alugado' && (
+                        <div className="space-y-4 pt-4 border-t border-border">
+                            <Label className="text-xs uppercase font-bold text-primary flex items-center gap-2">
+                                Anexação de Documentos (Aluguel)
+                            </Label>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground/60">Boleto de Pagamento</Label>
+                                    <Input
+                                        type="file"
+                                        accept=".pdf,image/*"
+                                        onChange={(e) => setBoletoFile(e.target.files?.[0] || null)}
+                                        className="h-10 text-[10px]"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground/60">Comprovante de Pagamento</Label>
+                                    <Input
+                                        type="file"
+                                        accept=".pdf,image/*"
+                                        onChange={(e) => setComprovanteFile(e.target.files?.[0] || null)}
+                                        className="h-10 text-[10px]"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground/60">Data Vencimento Boleto</Label>
+                                <Input
+                                    type="date"
+                                    value={formData.vencimentoBoleto}
+                                    onChange={(e) => setFormData({ ...formData, vencimentoBoleto: e.target.value })}
+                                    className="h-10 text-[10px]"
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest flex items-center gap-2">
@@ -270,6 +329,19 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
                             className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                         />
                         {imageFile && <p className="text-[10px] mt-1 text-emerald-500 font-bold">Arquivo selecionado: {imageFile.name}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest flex items-center gap-2">
+                            <Camera className="h-3 w-3" /> Foto do Documento Digital (Opcional)
+                        </Label>
+                        <Input
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={(e) => setDocumentoFile(e.target.files?.[0] || null)}
+                            className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-500/10 file:text-blue-500 hover:file:bg-blue-500/20"
+                        />
+                        {documentoFile && <p className="text-[10px] mt-1 text-blue-500 font-bold">Arquivo selecionado: {documentoFile.name}</p>}
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">

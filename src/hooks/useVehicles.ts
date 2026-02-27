@@ -10,14 +10,21 @@ export function useVehicles() {
     const fetchVehicles = async () => {
         try {
             setLoading(true);
+            setError(null);
             const { data, error } = await supabase
                 .from('vehicles')
                 .select('*')
                 .order('model', { ascending: true });
 
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase error details:', JSON.stringify(error));
+                if (error.code === 'PGRST301' || error.message?.includes('JWT') || (error as any).status === 401) {
+                    throw new Error('Sessão expirada. Faça logout e login novamente.');
+                }
+                throw error;
+            }
 
-            const formattedVehicles: Vehicle[] = (data || []).map((v) => ({
+            const formattedVehicles: Vehicle[] = ((data as any[]) || []).map((v) => ({
                 id: v.id,
                 internalId: v.internal_id,
                 plate: v.plate,
@@ -30,17 +37,22 @@ export function useVehicles() {
                 modelYear: v.model_year,
                 vehicleType: v.vehicle_type,
                 color: v.color,
-                category: v.category,
+                category: v.category as Vehicle['category'],
                 status: v.status as Vehicle['status'],
                 imageUrl: v.image_url,
+                documentoUrl: v.documento_url,
+                boletoUrl: v.boleto_url,
+                comprovanteUrl: v.comprovante_url,
+                vencimentoBoleto: v.vencimento_boleto,
                 createdAt: v.created_at,
                 updatedAt: v.updated_at,
             }));
 
             setVehicles(formattedVehicles);
-        } catch (err) {
-            console.error('Error fetching vehicles:', err);
-            setError(err instanceof Error ? err.message : 'Error fetching vehicles');
+        } catch (err: any) {
+            console.error('Erro ao buscar veículos:', err);
+            const msg = err?.message || 'Erro desconhecido ao buscar veículos';
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -65,6 +77,10 @@ export function useVehicles() {
                     category: newVehicle.category,
                     status: 'disponivel',
                     image_url: newVehicle.imageUrl,
+                    documento_url: newVehicle.documentoUrl,
+                    boleto_url: newVehicle.boletoUrl,
+                    comprovante_url: newVehicle.comprovanteUrl,
+                    vencimento_boleto: newVehicle.vencimentoBoleto || null,
                 }])
                 .select()
                 .single();
@@ -96,6 +112,10 @@ export function useVehicles() {
                     category: updates.category,
                     status: updates.status,
                     image_url: updates.imageUrl,
+                    documento_url: updates.documentoUrl,
+                    boleto_url: updates.boletoUrl,
+                    comprovante_url: updates.comprovanteUrl,
+                    vencimento_boleto: updates.vencimentoBoleto || null,
                 })
                 .eq('id', id)
                 .select()

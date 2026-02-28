@@ -50,8 +50,8 @@ const Login = () => {
 
             <div className="w-full max-w-md space-y-8 relative">
                 <div className="text-center space-y-4">
-                    <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-2xl mb-2 animate-bounce">
-                        <Car className="h-10 w-10 text-primary" />
+                    <div className="inline-flex items-center justify-center h-20 w-20 rounded-2xl bg-white border border-border shadow-lg mb-2 overflow-hidden">
+                        <img src="/logo.jpg" alt="LS Office Logo" className="h-full w-full object-contain" />
                     </div>
                     <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">
                         LSI <span className="text-primary font-light not-italic">FLEET</span>

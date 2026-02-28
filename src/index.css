@@ -8,23 +8,23 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 215 25% 98%;
+    --background: 215 20% 88%;
     --foreground: 217 33% 17%; /* Navy from logo text */
 
-    --card: 0 0% 100%;
+    --card: 215 18% 94%;
     --card-foreground: 217 33% 17%;
 
-    --popover: 0 0% 100%;
+    --popover: 215 18% 94%;
     --popover-foreground: 217 33% 17%;
 
     --primary: 217 33% 17%; /* LS Office Navy */
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 213 30% 92%;
+    --secondary: 213 20% 82%;
     --secondary-foreground: 217 33% 25%;
 
-    --muted: 213 25% 95%;
-    --muted-foreground: 215 15% 45%;
+    --muted: 213 18% 85%;
+    --muted-foreground: 215 15% 40%;
 
     --accent: 358 66% 45%; /* Logo Red Needle */
     --accent-foreground: 0 0% 100%;
@@ -32,19 +32,19 @@ All colors MUST be HSL.
     --destructive: 358 66% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 213 25% 88%;
-    --input: 213 25% 88%;
+    --border: 213 18% 78%;
+    --input: 213 18% 78%;
     --ring: 217 33% 17%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 215 25% 98%;
-    --sidebar-foreground: 215 15% 35%;
+    --sidebar-background: 215 20% 86%;
+    --sidebar-foreground: 215 15% 30%;
     --sidebar-primary: 217 33% 17%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 213 30% 92%;
+    --sidebar-accent: 213 20% 82%;
     --sidebar-accent-foreground: 217 33% 25%;
-    --sidebar-border: 213 25% 88%;
+    --sidebar-border: 213 18% 78%;
     --sidebar-ring: 217 33% 17%;
 
     /* Custom tokens for fleet dashboard */

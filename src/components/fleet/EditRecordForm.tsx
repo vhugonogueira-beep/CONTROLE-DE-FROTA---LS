@@ -185,7 +185,7 @@ export function EditRecordForm({ record, open, onOpenChange, onUpdate }: EditRec
 
                     <div className="grid grid-cols-2 md:grid-cols-2 gap-6 p-4 bg-amber-500/5 rounded-xl border border-amber-500/10">
                         <div className="space-y-2">
-                            <Label htmlFor="dataFinal" className="text-[10px] uppercase font-bold text-amber-600 tracking-widest">Previsão Data Final</Label>
+                            <Label htmlFor="dataFinal" className="text-[10px] uppercase font-bold text-amber-600 tracking-widest">Data Final</Label>
                             <Input
                                 id="dataFinal"
                                 type="date"
@@ -196,7 +196,7 @@ export function EditRecordForm({ record, open, onOpenChange, onUpdate }: EditRec
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="horarioFinal" className="text-[10px] uppercase font-bold text-amber-600 tracking-widest">Previsão Horário Final</Label>
+                            <Label htmlFor="horarioFinal" className="text-[10px] uppercase font-bold text-amber-600 tracking-widest">Horário Final</Label>
                             <Input
                                 id="horarioFinal"
                                 type="time"

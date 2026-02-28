@@ -30,10 +30,10 @@ export function useFleetRecords() {
         responsavel: record.responsavel,
         atividade: record.atividade,
         lavagem: record.lavagem as 'realizada' | 'pendente',
-        tanque: record.tanque as 'cheio' | 'necessario_abastecer' | 'meio_tanque',
+        tanque: record.tanque as FleetRecord['tanque'],
         andarEstacionado: record.andar_estacionado,
         status: record.status as FleetRecord['status'],
-        area: record.source || 'Não Definido',
+        area: record.source || '',
         rawMessage: record.raw_message,
         fotoPainelInicialUrl: record.foto_painel_inicial_url,
         fotoPainelFinalUrl: record.foto_painel_final_url,
@@ -90,7 +90,7 @@ export function useFleetRecords() {
           status: newRecord.status,
           source: newRecord.area || 'manual',
           foto_painel_inicial_url: newRecord.fotoPainelInicialUrl || null,
-        }])
+        } as any])
         .select()
         .single();
 
@@ -221,8 +221,8 @@ export function useFleetRecords() {
       if (updates.veiculo !== undefined) supabaseUpdates.veiculo = updates.veiculo;
       if (updates.dataInicial !== undefined) supabaseUpdates.data_inicial = updates.dataInicial;
       if (updates.horarioInicial !== undefined) supabaseUpdates.horario_inicial = updates.horarioInicial;
-      if (updates.dataFinal !== undefined) supabaseUpdates.data_final = updates.dataFinal;
-      if (updates.horarioFinal !== undefined) supabaseUpdates.horario_final = updates.horarioFinal;
+      if (updates.dataFinal !== undefined) supabaseUpdates.data_final = updates.dataFinal || null;
+      if (updates.horarioFinal !== undefined) supabaseUpdates.horario_final = updates.horarioFinal || null;
       if (updates.destino !== undefined) supabaseUpdates.destino = updates.destino;
       if (updates.kmInicial !== undefined) supabaseUpdates.km_inicial = updates.kmInicial;
       if (updates.kmFinal !== undefined) supabaseUpdates.km_final = updates.kmFinal;
@@ -232,7 +232,7 @@ export function useFleetRecords() {
       if (updates.tanque !== undefined) supabaseUpdates.tanque = updates.tanque;
       if (updates.andarEstacionado !== undefined) supabaseUpdates.andar_estacionado = updates.andarEstacionado;
       if (updates.status !== undefined) supabaseUpdates.status = updates.status;
-      if (updates.area !== undefined) supabaseUpdates.source = updates.area;
+      if (updates.area !== undefined && updates.area !== '') supabaseUpdates.source = updates.area;
       if (updates.fotoPainelInicialUrl !== undefined) supabaseUpdates.foto_painel_inicial_url = updates.fotoPainelInicialUrl;
       if (updates.fotoPainelFinalUrl !== undefined) supabaseUpdates.foto_painel_final_url = updates.fotoPainelFinalUrl;
       if (updates.comprovanteAbastecimentoUrl !== undefined) supabaseUpdates.comprovante_abastecimento_url = updates.comprovanteAbastecimentoUrl;
@@ -245,7 +245,65 @@ export function useFleetRecords() {
 
       if (updateError) throw updateError;
 
-      // 4. Handle vehicle change logic
+      // 4. Log the edit (audit trail)
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const changedFields: Record<string, { antes: any; depois: any }> = {};
+
+        // Compare old values vs new values
+        if (updates.dataFinal !== undefined && updates.dataFinal !== currentRecord.data_final) {
+          changedFields['data_final'] = { antes: currentRecord.data_final, depois: updates.dataFinal };
+        }
+        if (updates.horarioFinal !== undefined && updates.horarioFinal !== currentRecord.horario_final) {
+          changedFields['horario_final'] = { antes: currentRecord.horario_final, depois: updates.horarioFinal };
+        }
+        if (updates.veiculo !== undefined && updates.veiculo !== currentRecord.veiculo) {
+          changedFields['veiculo'] = { antes: currentRecord.veiculo, depois: updates.veiculo };
+        }
+        if (updates.responsavel !== undefined && updates.responsavel !== currentRecord.responsavel) {
+          changedFields['responsavel'] = { antes: currentRecord.responsavel, depois: updates.responsavel };
+        }
+        if (updates.destino !== undefined && updates.destino !== currentRecord.destino) {
+          changedFields['destino'] = { antes: currentRecord.destino, depois: updates.destino };
+        }
+        if (updates.kmInicial !== undefined && updates.kmInicial !== currentRecord.km_inicial) {
+          changedFields['km_inicial'] = { antes: currentRecord.km_inicial, depois: updates.kmInicial };
+        }
+        if (updates.dataInicial !== undefined && updates.dataInicial !== currentRecord.data_inicial) {
+          changedFields['data_inicial'] = { antes: currentRecord.data_inicial, depois: updates.dataInicial };
+        }
+        if (updates.horarioInicial !== undefined && updates.horarioInicial !== currentRecord.horario_inicial) {
+          changedFields['horario_inicial'] = { antes: currentRecord.horario_inicial, depois: updates.horarioInicial };
+        }
+        if (updates.tanque !== undefined && updates.tanque !== currentRecord.tanque) {
+          changedFields['tanque'] = { antes: currentRecord.tanque, depois: updates.tanque };
+        }
+        if (updates.lavagem !== undefined && updates.lavagem !== currentRecord.lavagem) {
+          changedFields['lavagem'] = { antes: currentRecord.lavagem, depois: updates.lavagem };
+        }
+        if (updates.andarEstacionado !== undefined && updates.andarEstacionado !== currentRecord.andar_estacionado) {
+          changedFields['andar_estacionado'] = { antes: currentRecord.andar_estacionado, depois: updates.andarEstacionado };
+        }
+        if (updates.atividade !== undefined && updates.atividade !== currentRecord.atividade) {
+          changedFields['atividade'] = { antes: currentRecord.atividade, depois: updates.atividade };
+        }
+
+        if (Object.keys(changedFields).length > 0) {
+          await (supabase as any).from('fleet_audit_logs').insert({
+            record_id: id,
+            user_email: user?.email || 'desconhecido',
+            action: 'update',
+            changes: changedFields,
+            veiculo: updates.veiculo || currentRecord.veiculo,
+          });
+          console.log('📝 Audit log registrado:', changedFields);
+        }
+      } catch (auditErr) {
+        // Don't block the update if audit log fails (table may not exist yet)
+        console.warn('⚠️ Audit log não registrado (tabela pode não existir):', auditErr);
+      }
+
+      // 5. Handle vehicle change logic
       if (updates.veiculo !== undefined && updates.veiculo !== currentRecord.veiculo) {
         const isCurrentActive = currentRecord.status === 'em_andamento' || currentRecord.status === 'agendado';
 

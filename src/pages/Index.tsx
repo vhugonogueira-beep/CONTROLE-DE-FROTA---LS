@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Car, Loader2, MessageSquare, Copy, CheckCheck, ParkingCircle, RefreshCw } from 'lucide-react';
+import { Car, Loader2, RefreshCw } from 'lucide-react';
 import { StatsCards } from '@/components/fleet/StatsCards';
 import { FleetTable } from '@/components/fleet/FleetTable';
 import { AddRecordForm } from '@/components/fleet/AddRecordForm';
@@ -14,16 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth/AuthContext';
-import { LogOut, User as UserIcon, FileDown, Image as ImageIcon, KeyRound } from 'lucide-react';
+import { LogOut, User as UserIcon, FileDown, KeyRound } from 'lucide-react';
 import { generateFleetReport, generateExcelReport } from '@/lib/ReportService';
 import { FleetRecord, FleetStats } from '@/types/fleet';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
@@ -38,7 +31,7 @@ const Index = () => {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
   const [selectedRecord, setSelectedRecord] = useState<FleetRecord | null>(null);
-  const [copied, setCopied] = useState(false);
+
   const [finishDialogOpen, setFinishDialogOpen] = useState(false);
   const [recordToFinish, setRecordToFinish] = useState<{ id: string; plate: string; kmInicial: number } | null>(null);
   const [editingRecord, setEditingRecord] = useState<FleetRecord | null>(null);
@@ -165,25 +158,7 @@ const Index = () => {
     }
   };
 
-  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`;
 
-  const handleCopyWebhook = async () => {
-    try {
-      await navigator.clipboard.writeText(webhookUrl);
-      setCopied(true);
-      toast({
-        title: 'URL copiada!',
-        description: 'A URL do webhook foi copiada para a área de transferência.',
-      });
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast({
-        title: 'Erro ao copiar',
-        description: 'Não foi possível copiar a URL.',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleGeneratePdf = async () => {
     try {
@@ -286,68 +261,7 @@ const Index = () => {
               <Car className="h-4 w-4" />
               Garagem
             </Button>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-2 border-primary/30 text-primary hover:bg-primary/10 font-bold text-xs uppercase tracking-tighter">
-                  <MessageSquare className="h-4 w-4" />
-                  WhatsApp
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-black uppercase italic">Integração WhatsApp</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-6 pt-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">URL do Webhook</Label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2 text-primary font-bold"
-                        onClick={handleCopyWebhook}
-                      >
-                        {copied ? (
-                          <CheckCheck className="mr-2 h-3 w-3" />
-                        ) : (
-                          <Copy className="mr-2 h-3 w-3" />
-                        )}
-                        {copied ? 'Copiado' : 'Copiar'}
-                      </Button>
-                    </div>
-                    <pre className="rounded-lg bg-muted p-4 text-[10px] font-mono whitespace-pre-wrap break-all border border-border/50">
-                      {webhookUrl}
-                    </pre>
-                  </div>
 
-                  <div className="rounded-xl bg-primary/5 p-4 border border-primary/10">
-                    <h3 className="font-bold text-sm text-primary mb-2 flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Exemplo de Mensagem:
-                    </h3>
-                    <p className="text-[10px] text-muted-foreground leading-relaxed mb-3">
-                      Cole este formato no WhatsApp para registro automático:
-                    </p>
-                    <pre className="rounded bg-muted px-3 py-2 text-[10px] font-mono whitespace-pre-wrap leading-tight text-foreground/80">
-                      {`*Saveiro Robust*
-Status: agendamento (ou em uso)
-Data inicial: 27/01/2026
-Horario inicial: 16:00
-Data final: 27/01/2026
-Horario final: 18:00
-Destino: Baião 
-Km inicial: 146.7
-Responsável: Marcio Amaral
-Atividade: Acquisition sites
-Área: Aquisição
-Lavagem: pendente⏳
-Tanque: cheio⛽
-Andar estacionado: P (ou -1 ou -2)`}
-                    </pre>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
             <div className="flex items-center gap-3 pl-2 border-l border-border/50">
               <div className="hidden md:flex flex-col items-end">
                 <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none mb-1">
@@ -585,19 +499,7 @@ Andar estacionado: P (ou -1 ou -2)`}
             )}
           </div>
 
-          {selectedRecord.rawMessage && (
-            <div className="mt-4 pt-4 border-t border-border/50">
-              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-2 flex items-center gap-2">
-                <MessageSquare className="h-3 w-3" />
-                Mensagem Original (WhatsApp)
-              </p>
-              <div className="bg-muted/50 p-3 rounded-lg border border-border/50">
-                <p className="text-[10px] font-mono whitespace-pre-wrap leading-relaxed text-muted-foreground">
-                  {selectedRecord.rawMessage}
-                </p>
-              </div>
-            </div>
-          )}
+
 
           <div className="mt-8 pt-6 border-t flex gap-3">
             <Button variant="outline" className="flex-1 font-bold h-11 uppercase" onClick={() => setSelectedRecord(null)}>

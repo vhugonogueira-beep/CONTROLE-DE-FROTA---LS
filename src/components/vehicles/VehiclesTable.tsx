@@ -108,7 +108,7 @@ export function VehiclesTable({ vehicles, onViewDetails, onEdit, onDelete, onUpd
                             <TableHead className="font-bold text-xs uppercase tracking-wider">Veículo / Modelo</TableHead>
                             <TableHead className="font-bold text-xs uppercase tracking-wider">Tipo / Categoria</TableHead>
                             <TableHead className="font-bold text-xs uppercase tracking-wider">Status Atual</TableHead>
-                            <TableHead className="font-bold text-xs uppercase tracking-wider text-right pr-6">Ações</TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-center">Ações</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -186,8 +186,8 @@ export function VehiclesTable({ vehicles, onViewDetails, onEdit, onDelete, onUpd
                                 <TableCell>
                                     {getStatusBadge(vehicle.status)}
                                 </TableCell>
-                                <TableCell className="text-right pr-4">
-                                    <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <TableCell className="text-center">
+                                    <div className="flex justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button

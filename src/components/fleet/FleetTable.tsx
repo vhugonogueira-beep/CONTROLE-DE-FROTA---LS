@@ -225,8 +225,8 @@ export function FleetTable({ records, vehicles, onFinish, onCancel, onStart, onV
                   <TooltipContent>Local de Estacionamento: {record.andarEstacionado}</TooltipContent>
                 </Tooltip>
               </TableCell>
-              <TableCell className="py-1.5 px-1 text-center">
-                <div className="flex justify-center gap-1">
+              <TableCell className="py-1.5 px-1">
+                <div className="flex items-center justify-center gap-1">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button

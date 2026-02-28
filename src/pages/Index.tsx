@@ -73,10 +73,11 @@ const Index = () => {
         title: 'Registro atualizado!',
         description: 'As informações da viagem foram salvas.',
       });
-    } catch (err) {
+    } catch (err: any) {
+      console.error('❌ Erro ao atualizar registro:', err);
       toast({
         title: 'Erro ao atualizar',
-        description: 'Não foi possível salvar as alterações.',
+        description: err?.message || err?.details || 'Não foi possível salvar as alterações.',
         variant: 'destructive',
       });
       throw err;

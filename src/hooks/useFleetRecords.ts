@@ -2,6 +2,28 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { FleetRecord } from '@/types/fleet';
 
+// Map app tanque values → DB enum values
+// DB enum: cheio | necessario_abastecer | meio_tanque
+// App:     cheio | 3/4 | meio_tanque | 1/4 | reserva
+const tanqueToDb = (val: string): string => {
+  const map: Record<string, string> = {
+    'cheio': 'cheio',
+    '3/4': 'cheio',
+    'meio_tanque': 'meio_tanque',
+    '1/4': 'necessario_abastecer',
+    'reserva': 'necessario_abastecer',
+  };
+  return map[val] || val;
+};
+
+const tanqueFromDb = (val: string): FleetRecord['tanque'] => {
+  const map: Record<string, FleetRecord['tanque']> = {
+    'cheio': 'cheio',
+    'necessario_abastecer': 'reserva',
+    'meio_tanque': 'meio_tanque',
+  };
+  return map[val] || (val as FleetRecord['tanque']);
+};
 export function useFleetRecords() {
   const [records, setRecords] = useState<FleetRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +52,7 @@ export function useFleetRecords() {
         responsavel: record.responsavel,
         atividade: record.atividade,
         lavagem: record.lavagem as 'realizada' | 'pendente',
-        tanque: record.tanque as FleetRecord['tanque'],
+        tanque: tanqueFromDb(record.tanque),
         andarEstacionado: record.andar_estacionado,
         status: record.status as FleetRecord['status'],
         area: record.source || '',
@@ -85,7 +107,7 @@ export function useFleetRecords() {
           responsavel: newRecord.responsavel,
           atividade: newRecord.atividade,
           lavagem: newRecord.lavagem,
-          tanque: newRecord.tanque,
+          tanque: tanqueToDb(newRecord.tanque),
           andar_estacionado: newRecord.andarEstacionado,
           status: newRecord.status,
           source: newRecord.area || 'manual',
@@ -229,7 +251,7 @@ export function useFleetRecords() {
       if (updates.responsavel !== undefined) supabaseUpdates.responsavel = updates.responsavel;
       if (updates.atividade !== undefined) supabaseUpdates.atividade = updates.atividade;
       if (updates.lavagem !== undefined) supabaseUpdates.lavagem = updates.lavagem;
-      if (updates.tanque !== undefined) supabaseUpdates.tanque = updates.tanque;
+      if (updates.tanque !== undefined) supabaseUpdates.tanque = tanqueToDb(updates.tanque);
       if (updates.andarEstacionado !== undefined) supabaseUpdates.andar_estacionado = updates.andarEstacionado;
       if (updates.status !== undefined) supabaseUpdates.status = updates.status;
       if (updates.area !== undefined && updates.area !== '') supabaseUpdates.source = updates.area;

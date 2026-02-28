@@ -105,7 +105,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
                     )}
                   </div>
                 ) : (
-                  <p className="text-3xl font-black tracking-tight">
+                  <p className="text-3xl font-black tracking-tight text-center">
                     {card.value}
                   </p>
                 )}

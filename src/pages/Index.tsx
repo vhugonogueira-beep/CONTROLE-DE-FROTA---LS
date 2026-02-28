@@ -258,7 +258,7 @@ const Index = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-500/10 text-slate-500 border border-slate-500/20">
-                      <ParkingCircle className="h-3.5 w-3.5" />
+                      <span className="h-5 w-5 flex items-center justify-center text-xs font-black rounded-full border border-current">G</span>
                       <span className="text-xs font-black leading-none">{stats.garagem}</span>
                     </div>
                   </TooltipTrigger>

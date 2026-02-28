@@ -44,6 +44,7 @@ export function useVehicles() {
                 boletoUrl: v.boleto_url,
                 comprovanteUrl: v.comprovante_url,
                 vencimentoBoleto: v.vencimento_boleto,
+                valorAluguel: v.valor_aluguel ? Number(v.valor_aluguel) : undefined,
                 createdAt: v.created_at,
                 updatedAt: v.updated_at,
             }));

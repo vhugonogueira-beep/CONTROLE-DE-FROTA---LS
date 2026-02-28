@@ -56,9 +56,12 @@ const Index = () => {
         return acc;
       }, {} as Record<string, number>),
     carrosAlugados: vehicles.filter(v => v.category === 'Alugado' || v.category === 'Terceirizado').length,
+    valorTotalAluguel: vehicles
+      .filter(v => v.category === 'Alugado' || v.category === 'Terceirizado')
+      .reduce((total, v) => total + (v.valorAluguel || 0), 0),
     veiculosAlugadosLista: vehicles
       .filter(v => v.category === 'Alugado' || v.category === 'Terceirizado')
-      .map(v => ({ modelo: v.model, placa: v.plate, vencimento: v.vencimentoBoleto })),
+      .map(v => ({ modelo: v.model, placa: v.plate, vencimento: v.vencimentoBoleto, valorAluguel: v.valorAluguel })),
     utilizacaoPorArea: {
       licenciamento: records.filter(r => r.area === 'Licenciamento' && r.status !== 'cancelado').length,
       aquisicao: records.filter(r => r.area === 'Aquisição' && r.status !== 'cancelado').length,

@@ -1,16 +1,10 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { FleetRecord } from '@/types/fleet';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 
-// Extend jsPDF with autotable
-declare module 'jspdf' {
-    interface jsPDF {
-        autoTable: (options: any) => jsPDF;
-    }
-}
 
 // Safely parse dates that may be in dd/MM/yyyy or ISO format
 const safeParseDate = (dateStr: string): Date => {
@@ -84,7 +78,7 @@ export const generateFleetReport = async (records: FleetRecord[]) => {
             record.status.toUpperCase()
         ]);
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: 35,
             head: [['Veículo', 'Saída', 'Retorno', 'Destino', 'Responsável', 'KM Ini', 'KM Fim', 'Status']],
             body: tableData,

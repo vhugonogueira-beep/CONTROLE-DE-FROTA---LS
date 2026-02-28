@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth/AuthContext';
 import { LogOut, User as UserIcon, FileDown, Image as ImageIcon, KeyRound } from 'lucide-react';
-import { generateFleetReport } from '@/lib/ReportService';
+import { generateFleetReport, generateExcelReport } from '@/lib/ReportService';
 import { FleetRecord, FleetStats } from '@/types/fleet';
 import {
   Dialog,
@@ -44,6 +44,8 @@ const Index = () => {
   const [editingRecord, setEditingRecord] = useState<FleetRecord | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
   const navigate = useNavigate();
 
   const stats: FleetStats = {
@@ -61,6 +63,9 @@ const Index = () => {
         return acc;
       }, {} as Record<string, number>),
     carrosAlugados: vehicles.filter(v => v.category === 'Alugado' || v.category === 'Terceirizado').length,
+    veiculosAlugadosLista: vehicles
+      .filter(v => v.category === 'Alugado' || v.category === 'Terceirizado')
+      .map(v => ({ modelo: v.model, placa: v.plate, vencimento: v.vencimentoBoleto })),
     utilizacaoPorArea: {
       licenciamento: records.filter(r => r.area === 'Licenciamento' && r.status !== 'cancelado').length,
       aquisicao: records.filter(r => r.area === 'Aquisição' && r.status !== 'cancelado').length,
@@ -177,6 +182,44 @@ const Index = () => {
         description: 'Não foi possível copiar a URL.',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleGeneratePdf = async () => {
+    try {
+      setIsGeneratingPdf(true);
+      await generateFleetReport(records);
+      toast({
+        title: 'PDF Gerado!',
+        description: 'O relatório foi baixado com sucesso.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao gerar PDF',
+        description: 'Ocorreu um problema ao processar o relatório.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleGenerateExcel = async () => {
+    try {
+      setIsGeneratingExcel(true);
+      await generateExcelReport(records);
+      toast({
+        title: 'Excel Gerado!',
+        description: 'O relatório foi baixado com sucesso.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao gerar Excel',
+        description: 'Não foi possível exportar os dados.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingExcel(false);
     }
   };
 
@@ -365,11 +408,30 @@ Andar estacionado: P (ou -1 ou -2)`}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => generateFleetReport(records)}
+                onClick={handleGeneratePdf}
+                disabled={isGeneratingPdf}
                 className="h-11 px-4 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 font-bold text-xs uppercase tracking-tighter rounded-xl"
               >
-                <FileDown className="h-4 w-4 mr-2" />
+                {isGeneratingPdf ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileDown className="h-4 w-4 mr-2" />
+                )}
                 Relatório PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateExcel}
+                disabled={isGeneratingExcel}
+                className="h-11 px-4 border-blue-500/30 text-blue-600 hover:bg-blue-500/10 font-bold text-xs uppercase tracking-tighter rounded-xl"
+              >
+                {isGeneratingExcel ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileDown className="h-4 w-4 mr-2" />
+                )}
+                Relatório Excel
               </Button>
               <AddRecordForm />
             </div>

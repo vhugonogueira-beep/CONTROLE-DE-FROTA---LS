@@ -41,6 +41,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       gradient: 'from-purple-500/10 to-purple-500/5',
       iconColor: 'text-purple-500',
       description: 'Veículos locados/terceiros',
+      isAlugadoCard: true,
     },
   ];
 
@@ -84,6 +85,24 @@ export function StatsCards({ stats }: StatsCardsProps) {
                     <div className="pt-1">
                       <span className="text-[8px] font-black text-muted-foreground/40 uppercase">Total: {card.value} KM</span>
                     </div>
+                  </div>
+                ) : card.isAlugadoCard ? (
+                  <div className="space-y-1 my-1">
+                    {stats.veiculosAlugadosLista.length > 0 ? (
+                      <>
+                        {stats.veiculosAlugadosLista.map((v) => (
+                          <div key={v.placa} className="flex justify-between items-center pr-4 border-b border-white/5 pb-1">
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground/60">{v.modelo}</span>
+                            <span className="text-[10px] font-black text-purple-400">{v.placa}</span>
+                          </div>
+                        ))}
+                        <div className="pt-1">
+                          <span className="text-[8px] font-black text-muted-foreground/40 uppercase">Total: {stats.carrosAlugados} veículos</span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-2xl font-black tracking-tight text-muted-foreground/40">0</p>
+                    )}
                   </div>
                 ) : (
                   <p className="text-3xl font-black tracking-tight">

@@ -1,6 +1,25 @@
-import { Car, MapPin, Gauge, Droplets, ParkingCircle } from 'lucide-react';
+import { Car, MapPin, Gauge, Droplets } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { FleetStats } from '@/types/fleet';
+
+// Custom car rental icon - car with RENT sign
+const CarRentIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* RENT sign */}
+    <rect x="5" y="1" width="14" height="7" rx="1.5" fill="currentColor" fillOpacity="0.2" stroke="currentColor" />
+    <text x="12" y="6" textAnchor="middle" fontSize="4.5" fontWeight="900" fill="currentColor" stroke="none" fontFamily="sans-serif" letterSpacing="0.3">RENT</text>
+    {/* Car body */}
+    <path d="M5 17h14" />
+    <path d="M6 13h12" />
+    <path d="M7 13l1.5-4h7l1.5 4" />
+    <circle cx="8" cy="17" r="1.5" />
+    <circle cx="16" cy="17" r="1.5" />
+    <path d="M4 13l-0.5 4h1" />
+    <path d="M20 13l0.5 4h-1" />
+    {/* Sign post */}
+    <line x1="12" y1="8" x2="12" y2="10" strokeWidth="1.5" />
+  </svg>
+);
 
 interface StatsCardsProps {
   stats: FleetStats;
@@ -18,7 +37,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     },
     {
       title: 'Utilização por Área',
-      value: '', // Not used for this card
+      value: '',
       icon: Car,
       gradient: 'from-amber-500/10 to-amber-500/5',
       iconColor: 'text-amber-500',
@@ -37,7 +56,8 @@ export function StatsCards({ stats }: StatsCardsProps) {
     {
       title: 'Carros Alugados',
       value: stats.carrosAlugados,
-      icon: ParkingCircle,
+      icon: null as any,
+      customIcon: true,
       gradient: 'from-purple-500/10 to-purple-500/5',
       iconColor: 'text-purple-500',
       description: 'Veículos locados/terceiros',
@@ -114,7 +134,11 @@ export function StatsCards({ stats }: StatsCardsProps) {
                 </p>
               </div>
               <div className={`rounded-xl bg-background/60 p-3 shadow-inner ${card.iconColor} shrink-0`}>
-                <card.icon className="h-6 w-6" />
+                {card.customIcon ? (
+                  <CarRentIcon className="h-6 w-6" />
+                ) : (
+                  <card.icon className="h-6 w-6" />
+                )}
               </div>
             </div>
           </CardContent>

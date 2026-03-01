@@ -44,6 +44,7 @@ export function useVehicles() {
                 boletoUrl: v.boleto_url,
                 comprovanteUrl: v.comprovante_url,
                 vencimentoBoleto: v.vencimento_boleto,
+                valorAluguel: v.valor_aluguel ? Number(v.valor_aluguel) : undefined,
                 createdAt: v.created_at,
                 updatedAt: v.updated_at,
             }));
@@ -81,7 +82,8 @@ export function useVehicles() {
                     boleto_url: newVehicle.boletoUrl,
                     comprovante_url: newVehicle.comprovanteUrl,
                     vencimento_boleto: newVehicle.vencimentoBoleto || null,
-                }])
+                    valor_aluguel: newVehicle.valorAluguel || null,
+                }] as any[])
                 .select()
                 .single();
 
@@ -116,7 +118,8 @@ export function useVehicles() {
                     boleto_url: updates.boletoUrl,
                     comprovante_url: updates.comprovanteUrl,
                     vencimento_boleto: updates.vencimentoBoleto || null,
-                })
+                    valor_aluguel: updates.valorAluguel !== undefined ? (updates.valorAluguel || null) : undefined,
+                } as any)
                 .eq('id', id)
                 .select()
                 .single();

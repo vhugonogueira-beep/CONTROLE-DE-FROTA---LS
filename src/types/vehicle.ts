@@ -18,6 +18,7 @@ export interface Vehicle {
     boletoUrl?: string; // Only for Alugado
     comprovanteUrl?: string; // Only for Alugado
     vencimentoBoleto?: string; // ISO date string
+    valorAluguel?: number; // Monthly rental value
     createdAt: string;
     updatedAt: string;
 }

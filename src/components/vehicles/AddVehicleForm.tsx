@@ -40,6 +40,7 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
         color: '',
         category: 'Operacional' as Vehicle['category'],
         vencimentoBoleto: '',
+        valorAluguel: '',
     });
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [documentoFile, setDocumentoFile] = useState<File | null>(null);
@@ -89,6 +90,7 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
                 boletoUrl: boletoUrl || undefined,
                 comprovanteUrl: comprovanteUrl || undefined,
                 vencimentoBoleto: formData.vencimentoBoleto || undefined,
+                valorAluguel: formData.valorAluguel ? parseFloat(formData.valorAluguel) : undefined,
             });
 
             setFormData({
@@ -105,6 +107,7 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
                 color: '',
                 category: 'Operacional',
                 vencimentoBoleto: '',
+                valorAluguel: '',
             });
             setImageFile(null);
             setDocumentoFile(null);
@@ -287,7 +290,7 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground/60">Boleto de Pagamento</Label>
+                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground/60">Boleto / Contrato de Aluguel</Label>
                                     <Input
                                         type="file"
                                         accept=".pdf,image/*"
@@ -306,14 +309,28 @@ export function AddVehicleForm({ onAdd }: AddVehicleFormProps) {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-[10px] uppercase font-bold text-muted-foreground/60">Data Vencimento Boleto</Label>
-                                <Input
-                                    type="date"
-                                    value={formData.vencimentoBoleto}
-                                    onChange={(e) => setFormData({ ...formData, vencimentoBoleto: e.target.value })}
-                                    className="h-10 text-[10px]"
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground/60">Data Vencimento Boleto</Label>
+                                    <Input
+                                        type="date"
+                                        value={formData.vencimentoBoleto}
+                                        onChange={(e) => setFormData({ ...formData, vencimentoBoleto: e.target.value })}
+                                        className="h-10 text-[10px]"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground/60">Valor de Locação (R$)</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={formData.valorAluguel}
+                                        onChange={(e) => setFormData({ ...formData, valorAluguel: e.target.value })}
+                                        placeholder="Ex: 3500.00"
+                                        className="h-10 text-[10px]"
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}

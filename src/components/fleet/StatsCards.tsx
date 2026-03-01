@@ -1,18 +1,6 @@
-import { Car, MapPin, Gauge, Droplets } from 'lucide-react';
+import { Car, MapPin, Gauge, Droplets, ParkingCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { FleetStats } from '@/types/fleet';
-
-// Custom car rental icon SVG component
-const CarRentIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 17h14M7 13h10M6 9l2-4h8l2 4" />
-    <circle cx="7.5" cy="17" r="1.5" />
-    <circle cx="16.5" cy="17" r="1.5" />
-    <path d="M4 13l-1 4h1M20 13l1 4h-1" />
-    <rect x="8" y="1" width="8" height="5" rx="1" fill="currentColor" fillOpacity="0.15" stroke="currentColor" />
-    <text x="12" y="4.8" textAnchor="middle" fontSize="3.5" fontWeight="bold" fill="currentColor" stroke="none" fontFamily="sans-serif">R$</text>
-  </svg>
-);
 
 interface StatsCardsProps {
   stats: FleetStats;
@@ -49,8 +37,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     {
       title: 'Carros Alugados',
       value: stats.carrosAlugados,
-      icon: null as any,
-      customIcon: true,
+      icon: ParkingCircle,
       gradient: 'from-purple-500/10 to-purple-500/5',
       iconColor: 'text-purple-500',
       description: 'Veículos locados/terceiros',
@@ -105,20 +92,12 @@ export function StatsCards({ stats }: StatsCardsProps) {
                       <>
                         {stats.veiculosAlugadosLista.map((v) => (
                           <div key={v.placa} className="flex justify-between items-center pr-4 border-b border-white/5 pb-1">
-                            <div className="flex flex-col">
-                              <span className="text-[10px] uppercase font-bold text-muted-foreground/60">{v.modelo}</span>
-                              <span className="text-[9px] font-bold text-purple-400">{v.placa}</span>
-                            </div>
-                            <span className="text-[10px] font-black text-purple-400">
-                              {v.valorAluguel ? `R$ ${v.valorAluguel.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '--'}
-                            </span>
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground/60">{v.modelo}</span>
+                            <span className="text-[10px] font-black text-purple-400">{v.placa}</span>
                           </div>
                         ))}
-                        <div className="flex justify-between items-center pt-1.5 border-t border-purple-500/20">
+                        <div className="pt-1">
                           <span className="text-[8px] font-black text-muted-foreground/40 uppercase">Total: {stats.carrosAlugados} veículos</span>
-                          <span className="text-[10px] font-black text-purple-400">
-                            R$ {stats.valorTotalAluguel.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
                         </div>
                       </>
                     ) : (
@@ -135,11 +114,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
                 </p>
               </div>
               <div className={`rounded-xl bg-background/60 p-3 shadow-inner ${card.iconColor} shrink-0`}>
-                {card.customIcon ? (
-                  <CarRentIcon className="h-12 w-12" />
-                ) : (
-                  <card.icon className="h-12 w-12" />
-                )}
+                <card.icon className="h-6 w-6" />
               </div>
             </div>
           </CardContent>
@@ -148,4 +123,3 @@ export function StatsCards({ stats }: StatsCardsProps) {
     </div>
   );
 }
-

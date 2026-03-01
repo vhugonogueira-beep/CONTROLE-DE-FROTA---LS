@@ -136,9 +136,9 @@ export function StatsCards({ stats }: StatsCardsProps) {
               </div>
               <div className={`rounded-xl bg-background/60 p-3 shadow-inner ${card.iconColor} shrink-0`}>
                 {card.customIcon ? (
-                  <CarRentIcon className="h-6 w-6" />
+                  <CarRentIcon className="h-12 w-12" />
                 ) : (
-                  <card.icon className="h-6 w-6" />
+                  <card.icon className="h-12 w-12" />
                 )}
               </div>
             </div>

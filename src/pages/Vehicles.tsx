@@ -9,6 +9,7 @@ import { VehicleDetailsDialog } from '@/components/vehicles/VehicleDetailsDialog
 import { Vehicle } from '@/types/vehicle';
 import { useNavigate } from 'react-router-dom';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 
 const Vehicles = () => {
@@ -129,22 +130,53 @@ const Vehicles = () => {
                         <AddVehicleForm onAdd={handleAddVehicle} />
                     </div>
 
-                    {vehicles.length === 0 ? (
-                        <div className="rounded-xl border border-dashed p-16 text-center bg-muted/20">
-                            <Car className="mx-auto h-12 w-12 text-muted-foreground/30" />
-                            <h3 className="mt-4 text-xl font-bold uppercase tracking-tight">Nenhum veículo encontrado</h3>
-                            <p className="mt-2 text-sm text-muted-foreground font-medium">
-                                Cadastre novos veículos para iniciar o monitoramento profissional.
-                            </p>
-                        </div>
-                    ) : (
-                        <VehiclesTable
-                            vehicles={vehicles}
-                            onViewDetails={setSelectedVehicle}
-                            onEdit={handleEditClick}
-                            onDelete={handleDeleteVehicle}
-                        />
-                    )}
+                    <Tabs defaultValue="all" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3 mb-8">
+                            <TabsTrigger value="all" className="font-bold text-xs uppercase">Todos ({vehicles.length})</TabsTrigger>
+                            <TabsTrigger value="propria" className="font-bold text-xs uppercase">Frota Própria ({vehicles.filter(v => v.category === 'Frota Própria').length})</TabsTrigger>
+                            <TabsTrigger value="alugado" className="font-bold text-xs uppercase">Alugados ({vehicles.filter(v => v.category === 'Alugado').length})</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="all" className="mt-0">
+                            {vehicles.length === 0 ? (
+                                <div className="rounded-xl border border-dashed p-16 text-center bg-muted/20">
+                                    <Car className="mx-auto h-12 w-12 text-muted-foreground/30" />
+                                    <h3 className="mt-4 text-xl font-bold uppercase tracking-tight">Nenhum veículo encontrado</h3>
+                                    <p className="mt-2 text-sm text-muted-foreground font-medium">
+                                        Cadastre novos veículos para iniciar o monitoramento profissional.
+                                    </p>
+                                </div>
+                            ) : (
+                                <VehiclesTable
+                                    vehicles={vehicles}
+                                    onViewDetails={setSelectedVehicle}
+                                    onEdit={handleEditClick}
+                                    onDelete={handleDeleteVehicle}
+                                    onUpdate={handleUpdateVehicle}
+                                />
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="propria" className="mt-0">
+                            <VehiclesTable
+                                vehicles={vehicles.filter(v => v.category === 'Frota Própria')}
+                                onViewDetails={setSelectedVehicle}
+                                onEdit={handleEditClick}
+                                onDelete={handleDeleteVehicle}
+                                onUpdate={handleUpdateVehicle}
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="alugado" className="mt-0">
+                            <VehiclesTable
+                                vehicles={vehicles.filter(v => v.category === 'Alugado')}
+                                onViewDetails={setSelectedVehicle}
+                                onEdit={handleEditClick}
+                                onDelete={handleDeleteVehicle}
+                                onUpdate={handleUpdateVehicle}
+                            />
+                        </TabsContent>
+                    </Tabs>
                 </section>
             </main>
 
